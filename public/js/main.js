@@ -1,10 +1,7 @@
 var canPoll = false
-var voiceMailList = []
-var assend = false
-var sortedByUrgency = false
-var categoryList = []
 var agentList = []
 var timeOffset = 0
+
 function init(){
   var height = $("#menu_header").height()
     //height += $("#search_bar").height()
@@ -28,6 +25,10 @@ function init(){
     timeOffset = new Date().getTimezoneOffset()*60000;
 }
 
+function updateSummary(total){
+  $("#summary").html("<b>Selected Agent #:</b> " + total)
+}
+
 function pollResult(){
   var url = "poll_calls"
   var getting = $.get( url );
@@ -35,6 +36,7 @@ function pollResult(){
   getting.done(function( res ) {
     if (res.status == "ok") {
       if (res.data.length){
+        updateSummary(res.data.length)
         for (var extension of res.data){
           var agent = agentList.find(o => o.id === extension.id)
 

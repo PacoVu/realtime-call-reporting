@@ -37,7 +37,13 @@ function init(){
   $('#timezone option[value='+offset+']').prop('selected', true);
 }
 
+function updateSummary(){
+  var total = $("#extensions option:selected").length;
+  $("#summary").html("Total agent: " + total)
+}
+
 function readReports(){
+  updateSummary()
   var url = "read_reports"
   var exts = $("#extensions").val()
   var extensionIds = ""
