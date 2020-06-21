@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>RingCentral Voicemail Assistant</title>
+        <link href="./img/favicon.ico" type="image/vnd.microsoft.icon" rel="shortcut icon">
+        <link href="./img/favicon.ico" type="image/vnd.microsoft.icon" rel="icon">
+        <script src="./js/jquery-3.1.0.min.js"></script>
+        <script src="./js/main.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="./css/bootstrap.min.css">
+
+        <link rel="stylesheet" type="text/css" href="./css/main.css">
+        <link rel="stylesheet" type="text/css" href="./css/ui.css">
+    </head>
+    <body>
+      <nav id="menu_header" class="navbar navbar-default no-border">
+        <span class="left-middle-align">
+          <span class="rclogo"><a href="/"><img alt="Brand" src="img/ringcentral.png" height="40"></a></span>&nbsp;&nbsp;
+          <span class="title">Voicemail Assistant</span>
+        </span>
+
+        <ul class="nav navbar-nav navbar-right middle-align">
+          <li><span><a href="javascript:history.back()">Back</a></span></li>
+        </ul>
+      </nav>
+      <section id='content'>
+        <body>
+          <h3>How to run this Virtual Voicemail Assistant demo</h3>
+          <ol>
+              <li>Choose an environment and login your RingCentral account.
+                <div style="font-style:italic">You can setup a dedicated extension with a direct phone number and setup the voicemail inbox as discussed in <a href="#">this article.</a></div>
+              </li>
+              <li>Click the settings icon at the top-right corner and change the settings accordingly.
+                <ul>
+                <li>Select a transcription service option.</li>
+                <li>Customize the reply SMS message to back to caller after receiving a voicemail.</li>
+                <li>Delegation: Choose an extension/user from your account and assign with certain categories. That user will receive a notification via SMS every time there is a voicemail assigned to the user.
+                </li>
+              </ul>
+              </li>
+              <li>Make a call to the phone number of the extension and leave a voicemail with technical questions related to using APIs from RingCentral Developer platform.
+                <div><b>Example messages:</b></div>
+                <div>"I have a problem to send SMS using RingCentral platorm. Please help."</div>
+                <div>"I cannot login to the platform with my extension username and password. It looks like the server is down. Please call me back as soon as possible."</div>
+                <div style="font-style:italic">Note: </div><span>This is just a demo app. The categorization data model was trained with just a small dataset. Thus the accuracy is not great. Also, the urgency detection data model is just a demo data model provided by Monkey Learn AI service. It won't detect urgency based on business seriousness!</span>
+              </li>
+              <li>Wait to see the voicemail updated on the list</li>
+          </ol>
+        </body>
+      </section>
+      <%- include('_footer') %>
+    </body>
+</html>

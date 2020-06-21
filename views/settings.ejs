@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RingCentral Voicemail Assistant</title>
+    <link href="./img/favicon.ico" type="image/vnd.microsoft.icon" rel="shortcut icon">
+    <link href="./img/favicon.ico" type="image/vnd.microsoft.icon" rel="icon">
+    <script src="js/settings.js" type="text/javascript"></script>
+    <script src="js/jquery-3.1.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.3/css/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <link rel="stylesheet" type="text/css" href="css/ui.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.3/js/bootstrap-select.min.js"></script>
+    <script>
+      window.selectedAgents = <%- JSON.stringify(settings['assigned_agents']) %>
+      window.thirdPartyTranscription = <%- JSON.stringify(settings['third_party_transcription']) %>
+    </script>
+</head>
+<body onload="init()">
+  <nav id="menu_header" class="navbar navbar-default no-border">
+    <span class="left-middle-align">
+      <span class="rclogo"><a href="/"><img alt="Brand" src="img/ringcentral.png" height="40"></a></span>&nbsp;&nbsp;
+      <span class="title">Voicemail Assistant</span>
+    </span>
+    <ul class="nav navbar-nav navbar-right middle-align">
+      <li><span><b><%- userName %></b></span></li>
+      <li><span><a href="/about">Help</a></span></li>
+      <li><span>|</span></li>
+      <li><span><a href="javascript:history.back()">Back</a></span></li>
+    </ul>
+  </nav>
+
+  <section id='content'>
+    <div class="col-xs-12">
+      <div class="row">
+        <div class="col-sm-3"></div>
+        <div class="col-sm-5">
+            <div class="title">Transcription</div>
+            <select id="transcription_option" style="width:150px" class="selectpicker filter-select" onchange="toggleTranscriptionOption()">
+              <% if (settings['third_party_transcription'] == "true") { %>
+                <option value="thirdparty" selected>Rev AI</option>
+                <option value="ringcentral">RingCentral</option>
+              <% } else { %>
+                <option value="thirdparty">Rev AI</option>
+                <option value="ringcentral" selected>RingCentral</option>
+              <% } %>
+            </select>
+            <% if (settings['third_party_transcription']) { %>
+              <div id="transcribe_spam_option" style="display:block">
+              <% if (settings['transcribe_spam'] == "true") { %>
+                <input id="transcribe_spam" type="checkbox" checked onchange="disableSaveButton(false)"> Transcribe spam voicemail</input>
+              <% } else { %>
+                <input id="transcribe_spam" type="checkbox" onchange="disableSaveButton(false)"> Transcribe spam voicemail</input>
+              <% } %>
+              </div>
+            <% } else { %>
+              <div id="transcribe_spam_option" style="display:none">
+              <% if (settings['transcribe_spam']) { %>
+                <input id="transcribe_spam" type="checkbox" checked onchange="disableSaveButton(false)"> Transcribe spam voicemail</input>
+              <% } else { %>
+                <input id="transcribe_spam" type="checkbox" onchange="disableSaveButton(false)"> Transcribe spam voicemail</input>
+              <% } %>
+              </div>
+            <% } %>
+            <div class="title">Auto-reply</div>
+            <% if (settings['send_confirm_sms']) { %>
+              <input type="checkbox" id="send_confirm_sms" class="section" checked onclick="showMessageTemplate()"> Send reply SMS message to caller</input></br>
+              <textarea id="confirm_message" class="message_template" onchange="disableSaveButton(false)" cols="51" rows="3" placeholder="Enter SMS message template"><%= settings['message'] %></textarea>
+            <% } else { %>
+              <input type="checkbox" id="send_confirm_sms" class="section" onclick="showMessageTemplate()"> Send reply SMS message to caller</input></br>
+              <textarea id="confirm_message" style="display:none" class="message_template" onchange="disableSaveButton(false)" cols="51" rows="3" placeholder="Enter SMS message template"><%= settings['message'] %></textarea>
+            <% } %>
+
+            </br>
+            <% if (settings['agents'].length > 0) { %>
+            <div class="title">Delegation</div>
+              <div class="section">
+                <label for="delegated_agents" class="filter-label">Agents</label>
+                <select id="delegated_agents" class="selectpicker filter-select">
+                  <% for (var agent of settings['agents']) { %>
+                    <option value="<%- agent.id %>"><%= agent.fullName %></option>
+                  <% } %>
+                </select>
+                &nbsp;&nbsp;
+                <label for="categories" class="filter-label">Categories</label>
+                <select id="categories" multiple style="width:150px" class="selectpicker filter-select">
+                  <% for (var category of settings['categories']) { %>
+                    <option value="<%- category %>"><%= category %></option>
+                  <% } %>
+                </select>
+              </div>
+            </br>
+            <button onclick="addAgent()" class="btn-rc">Assign</button>
+            <div class="section">
+            <label for="selected" class="filter-label">Assigned agents</label>
+            </div>
+            <div id="selected">
+
+            </div>
+            <% } %>
+          </div>
+          <div class="col-sm-2">
+            <button id="cancel_btn" onclick="history.back()" class="btn">Cancel</button>&nbsp;&nbsp;
+            <button id="save_btn" disabled onclick="saveSettings()" class="btn-rc">Save</button>
+          </div>
+        <div class="col-sm-1"></div>
+      </div>
+    </div>
+  </section>
+  <%- include('_footer') %>
+</body>
+</html>
