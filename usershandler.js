@@ -118,7 +118,7 @@ var engine = User.prototype = {
       var tableName = "rt_extensions_" + this.accountId
 
       var query = "SELECT * FROM " + tableName
-      console.log(query)
+      //console.log(query)
       var thisClass = this
       this.extensionList = []
 
@@ -207,7 +207,7 @@ var engine = User.prototype = {
         try {
           var resp = await p.get(endpoint, params)
           var jsonObj = await resp.json()
-          console.log(jsonObj.navigation)
+          //console.log(jsonObj.navigation)
           for (var record of jsonObj.records){
             var item = {
               name: record.name,
