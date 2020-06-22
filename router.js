@@ -139,8 +139,15 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     console.log("load main?")
     res.render('main', {
-        userName: users[index].getUserName()
+        userName: users[index].getUserName(),
+        isAdminUser: users[index].isAdminUser
     })
+  },
+  loadSettingsPage: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].loadSettingsPage(res)
   },
   loadCallLogsPage: function(req, res){
     var index = getUserIndex(req.session.userId)
@@ -153,6 +160,13 @@ var router = module.exports = {
     if (index < 0)
       return this.forceLogin(req, res)
     users[index].loadReportingsPage(res)
+  },
+  getAccountExtensions: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    console.log("index " + index)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].getAccountExtensions(res)
   },
   readExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)

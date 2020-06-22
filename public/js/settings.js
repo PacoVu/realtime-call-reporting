@@ -1,86 +1,160 @@
+var canPoll = false
+var agentList = []
+var timeOffset = 0
+
 function init(){
-    var select = ""
-    for (var agent of window.selectedAgents){
-     select += agent.name + ": " + agent.category + "</br>"
+  var height = $("#menu_header").height()
+    height += $("#footer").height()
+    var h = $(window).height() - (height + 90);
+    $("#extension_list").height(h)
+
+    window.onresize = function() {
+      var height = $("#menu_header").height()
+      height += $("#footer").height()
+      var h = $(window).height() - (height + 90);
+      $("#extension_list").height(h)
     }
-    $("#selected").html(select)
+    readExtensions()
 }
 
+function checkSubscription(){
+  var url = "check_subscription"
+  var getting = $.get( url );
+  getting.done(function( res ) {
 
-function addAgent(){
-    var agentId = $("#delegated_agents").val()
-    var cat = $("#categories").val();
-    if (cat.length == 0){
-      $("#categories").focus()
-      return
-    }
-    var agent = {
-      id: agentId,
-      name: $("#delegated_agents option:selected").text(),
-      category: cat
-    }
-    $("#categories").val('').trigger("change");
-    var newAgent = true
-    for (var i=0; i<window.selectedAgents.length; i++){
-        var temp = window.selectedAgents[i]
-        if (agentId == temp.id){
-            window.selectedAgents[i] = agent
-            newAgent = false
-            break
-        }
-    }
-
-    if (newAgent){
-        window.selectedAgents.push(agent)
-    }
-    var select = ""
-    for (var agent of window.selectedAgents){
-        select += agent.name + ": " + agent.category + "</br>"
-    }
-    $("#selected").html(select)
-    disableSaveButton(false)
+  })
 }
 
-function showMessageTemplate(){
-    disableSaveButton(false)
-    if ($("#send_confirm_sms").is(":checked"))
-      $("#confirm_message").show()
-    else
-      $("#confirm_message").hide()
-}
-
-function saveSettings(){
-  var url = "savesettings"
-  var thirdparty = ($("#transcription_option").val() == "thirdparty") ? true : false
-  var params = {
-    third_party_transcription : thirdparty,
-    transcribe_spam : $("#transcribe_spam").is(":checked"),
-    send_confirm_sms : $("#send_confirm_sms").is(":checked"),
-    message: $("#confirm_message").val(),
-    assigned_agents: JSON.stringify(window.selectedAgents)
+function createAgentList() {
+  var page = $("#pages").val()
+  var ranges = page.split("-")
+  $('#extensions').empty()
+  var start = parseInt(ranges[0])
+  var end = parseInt(ranges[1])
+  for (var i=start; i<end; i++){
+    ext = agentList[i]
+    optionText = ext.name;
+    optionValue = ext.id;
+    $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
   }
-  var getting = $.post( url, params );
+}
+
+function searchAgent(){
+  var agentName = $("#search").val().toLowerCase()
+  $('#extensions').empty()
+  var foundList = []
+  for (var agent of agentList){
+    if (agent.name.toLowerCase().indexOf(agentName) >= 0){
+      optionText = agent.name;
+      optionValue = agent.id;
+      $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
+    }
+  }
+}
+function sortByName(a, b){
+  return a.name < b.name
+}
+function readExtensions(){
+  var url = "get_account_extensions"
+  var getting = $.get( url );
   getting.done(function( res ) {
     if (res.status == "ok"){
-      disableSaveButton(true)
-    }else
-      alert(res.message)
+      agentList = res.extensions
+      agentList.sort()
+      var perPage = 200
+      var pages = Math.floor(agentList.length / perPage)
+      var start = 0
+      var end = 0
+      for (var p=1; p<=pages; p++){
+        end = (perPage*p)
+        $('#pages').append(`<option value="${start + "-" + end}"> ${p} </option>`);
+        start = end
+      }
+      var leftOver = agentList.length % perPage
+      end += leftOver
+      if (leftOver > 0){
+        $('#pages').append(`<option value="${start + "-" + end}"> ${pages+1} </option>`);
+      }
+      $("#pages").prop("selectedIndex", 0).change()
+      for (var ext of res.monitoredExtensions)
+        $('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
+    }
   });
 }
-function toggleTranscriptionOption(){
-  if ($("#transcription_option").val() == "thirdparty")
-    $("#transcribe_spam_option").css("display", 'block');
-  else
-    $("#transcribe_spam_option").css("display", 'none');
-  disableSaveButton(false)
+
+function addExtension(){
+  var extId = $('#extensions').val()
+  var name = $('#extensions option:selected').text();
+  var url = `add_extension?id=${extId}&name=${name}`
+  var getting = $.get( url );
+  getting.done(function( res ) {
+    if (res.status == "ok"){
+      var agent = {
+        id: extId,
+        calls: []
+      }
+      agentList.push(agent)
+      var stats = res.data.callStatistics
+      var html = `<div id="extension_${extId}" class='col-sm-3 phone-block'>`
+      // stats block
+      html += `<div id="stats_${extId}" class='col-xs-12'>`
+      html += makeCallsStatisticBlock(name, stats)
+      html += `</div>`
+      // title line
+      html += `<div id="title_${extId}" class='col-xs-12 call-title'>Last call stats</div>`
+      // active call block
+      html += `<div id="active_calls_${extId}" class='col-xs-12 active-calls'>`
+      html += makeNoCallBlock()
+      html += `</div>`
+      $('#extension_list').append(html);
+    }else if (res.status == "duplicated"){
+      alert("Duplicated")
+    }
+  });
 }
 
-function disableSaveButton(flag){
-  if (flag){
-    $("#save_btn").prop("disabled", true);
-    $("#cancel_btn").text("Done");
+function logout(){
+  window.location.href = "index?n=1"
+}
+
+function formatDurationTime(dur){
+  dur = Math.round(dur)
+  if (dur > 86400) {
+    var d = Math.floor(dur / 86400)
+    dur = dur % 86400
+    var h = Math.floor(dur / 3600)
+    //h = (h>9) ? h : "0" + h
+    dur = dur % 3600
+    var m = Math.floor(dur / 60)
+    //m = (m>9) ? m : ("0" + m)
+    var s = dur % 60
+    //var s = (dur>9) ? dur : ("0" + dur)
+    return d + "d " + h + "h " + m + "m " + s + "s"
+  }else if (dur >= 3600){
+    var h = Math.floor(dur / 3600)
+    dur = dur % 3600
+    var m = Math.floor(dur / 60)
+    //m = (m>9) ? m : ("0" + m)
+    var s = dur % 60
+    //var s = (dur>9) ? dur : ("0" + dur)
+    return h + "h " + m + "m " + s + "s"
+  }else if (dur >= 60){
+    var m = Math.floor(dur / 60)
+    var s = dur % 60
+    //var s = (dur>9) ? dur : ("0" + dur)
+    return m + "m " + s + "s"
   }else{
-    $("#save_btn").prop("disabled", false);
-    $("#cancel_btn").text("Cancel");
+    //var s = (dur>9) ? dur : ("0" + dur)
+    return dur + "s"
   }
+}
+
+
+
+function sortDateAssend(a, b) {
+  return a.date - b.date;
+}
+
+function sortDateDessend(a, b) {
+  return b.date - a.date;
 }

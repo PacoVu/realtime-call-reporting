@@ -31,8 +31,12 @@ app.get('/', function (req, res) {
   }
 })
 
-app.get('/test', function (req, res) {
-  res.render('test')
+app.get('/settings', function (req, res) {
+  if (req.session.extensionId != 0)
+    router.loadSettingsPage(req, res)
+  else{
+    res.render('index')
+  }
 })
 
 app.get('/login', function (req, res) {
@@ -75,6 +79,11 @@ app.get('/calllogs', function (req, res) {
 
 app.get('/reportings', function (req, res) {
   router.loadReportingsPage(req, res)
+})
+
+app.get('/get_account_extensions', function (req, res) {
+  console.log("get_account_extensions")
+  router.getAccountExtensions(req, res)
 })
 
 app.get('/read_extensions', function (req, res) {

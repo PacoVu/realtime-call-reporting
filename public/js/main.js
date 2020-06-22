@@ -4,29 +4,27 @@ var timeOffset = 0
 
 function init(){
   var height = $("#menu_header").height()
-    //height += $("#search_bar").height()
-    //height += $("#voicemail_list_header").height()
     height += $("#footer").height()
-
     var h = $(window).height() - (height + 90);
     $("#extension_list").height(h)
 
     window.onresize = function() {
       var height = $("#menu_header").height()
-      //height += $("#search_bar").height()
-      //height += $("#voicemail_list_header").height()
       height += $("#footer").height()
-
       var h = $(window).height() - (height + 90);
       $("#extension_list").height(h)
     }
     readExtensions()
-    pollResult()
     timeOffset = new Date().getTimezoneOffset()*60000;
 }
 
-function updateSummary(total){
-  $("#summary").html("<b>Selected Agent #:</b> " + total)
+function updateSummary(total, idle, ringing, connected, hold){
+  var html = "<b>Agent #:</b> " + total
+  html += " <b>Idle #:</b> " + idle
+  html += " <b>Ringing #:</b> " + ringing
+  htnl += " <b>Connected #:</b> " + connected
+  html += " <b>Hold #:</b> " + hold
+  $("#summary").html(html)
 }
 
 function pollResult(){
@@ -36,13 +34,17 @@ function pollResult(){
   getting.done(function( res ) {
     if (res.status == "ok") {
       if (res.data.length){
-        updateSummary(res.data.length)
+        var idle = 0
+        var ringing = 0
+        var connected = 0
+        var hold = 0
         for (var extension of res.data){
           var agent = agentList.find(o => o.id === extension.id)
 
           if (extension.activeCalls.length){
             for (var call of extension.activeCalls){
               if (call.status == "NO-CALL"){
+                idle++
                 var stats = extension.callStatistics
                 $("#title_"+extension.id).html("Last call stats")
                 $("#stats_"+extension.id).empty()
@@ -56,10 +58,6 @@ function pollResult(){
               }else{
                 $("#title_"+extension.id).html("Active call stats")
                 $("#active_calls_"+extension.id).empty()
-                //if ($("#active_calls_"+extension.id).length == 0)
-                //  $("#active_calls_"+extension.id).empty()
-                //$("#call_"+call.sessionId).append(html)
-                //if ($("#call_"+call.sessionId).length == 0)
                 $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
               }
             }
@@ -72,6 +70,7 @@ function pollResult(){
             //$("#active_calls_"+extension.id).append(makeNoCallBlock())
           }
         }
+        updateSummary(res.data.length, idle, ringing, connected, hold)
       }
       window.setTimeout(function(){
         if (canPoll)
@@ -264,6 +263,7 @@ function readExtensions(){
         html += `</div>`
         $('#extension_list').append(html);
       }
+      pollResult()
     }
   });
 }

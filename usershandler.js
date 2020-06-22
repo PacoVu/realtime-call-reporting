@@ -18,6 +18,7 @@ function User(id){
   this.accountId = 0
   this.extensionId = 0
   this.userName = ""
+  this.isAdminUser = false
   this.eventEngine = null
   this.platform_engine = new RCPlatform(this)
 
@@ -55,8 +56,9 @@ var engine = User.prototype = {
               try {
                 var resp = await p.get("/restapi/v1.0/account/~/extension/~/")
                 var respObj = await resp.json()
-                if (respObj.permissions.admin.enabled){
-                    //thisUser.setAdmin(true)
+                //if (respObj.permissions.admin.enabled){
+                if (extensionId == "1426275020") { // Phong Vu fake admin
+                    this.isAdminUser = true
                     console.log("Role: " + respObj.permissions.admin.enabled)
                 }
                 var fullName = respObj.contact.firstName + " " + respObj.contact.lastName
@@ -106,6 +108,12 @@ var engine = User.prototype = {
         res.send('No Auth code');
         callback("error", null)
       }
+    },
+    loadSettingsPage: function(res){
+      res.render('/settings',{
+        userName: this.userName,
+
+      })
     },
     logout: async function(req, res, callback){
       console.log("LOGOUT FUNC")
@@ -442,7 +450,7 @@ var engine = User.prototype = {
       var outboundActiveCalls = 0
       for (var ext of this.monitoredExtensionList){
         if (ext.activeCalls.length){
-          if (call.status != "NO-CALL"){
+          if (ext.activeCalls[0] != "NO-CALL"){
             if (ext.activeCalls[0].direction == "Inbound")
               inboundActiveCalls++
             else
@@ -706,7 +714,6 @@ function readAnalyticsDb(extensionId, callback){
 
 function updateAnalyticsDb(accountId, extension){
   var tableName = "rt_analytics_" + accountId
-
   var query = 'INSERT INTO ' + tableName //+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
   query += " VALUES ('" + extension.id
   query += "'," + new Date().getTime()
@@ -724,14 +731,7 @@ function updateAnalyticsDb(accountId, extension){
   query += ' outbound_calls= ' + extension.callStatistics.outboundCalls + ", "
   query += ' missed_calls= ' + extension.callStatistics.missedCalls + ", "
   query += ' voicemails= ' + extension.callStatistics.voicemails
-  //query += " WHERE extension_id='" + extension.id + "'"
   console.log(query)
-  /*
-  var query = "INSERT INTO rt_call_analytics_customers (account_id, subscription_id)"
-  query += " VALUES ($1,$2)"
-  var values = [accountId, subscriptionId]
-  query += " ON CONFLICT (account_id) DO UPDATE SET subscription_id='" + subscriptionId + "'"
-  */
   pgdb.insert(query, [], (err, result) =>  {
     if (err){
       console.error(err.message);
@@ -805,40 +805,6 @@ function createCallLogsAnalyticsTable(accountId, callback) {
       }
     })
 }
-/*
-function updateCallLogDb(accountId, extensionId, call){
-  var tableName = "rt_call_logs_" + accountId
-
-  var query = "INSERT INTO " + tableName
-  query += " VALUES ('" + call.sessionId + "','"
-  query += extensionId + "','"
-  query += call.customerNumber + "','"
-  query += call.agentNumber + "','"
-  query += call.direction + "',"
-  query += call.callingTimestamp + ","
-  query += call.call_duration + ","
-  query += call.ringingTimestamp + ","
-  query += call.connectingTimestamp + ","
-  query += call.disconnectingTimestamp + ","
-  query += call.holdingTimestamp + ","
-  query += call.callHoldDurationTotal + ","
-  query += call.holdingCount + ","
-  query += call.callRespondDuration + ",'"
-  query += call.callType + "','"
-  query += call.callAction + "','"
-  query += call.callResult + "')"
-  console.log(query)
-
-  pgdb.insert(query, [], (err, result) =>  {
-    if (err){
-      console.error(err.message);
-      console.log("QUERY: " + query)
-    }else{
-      console.log("updateCallLogDb DONE");
-    }
-  })
-}
-*/
 
 function updateAccountExtensionsDb(accountId, extensionList){
   var tableName = "rt_extensions_" + accountId
@@ -865,21 +831,7 @@ function updateAccountExtensionsDb(accountId, extensionList){
     }
   })
 }
-/*
-function createCustomersTable() {
-  console.log("createCustomersTable")
-  var query = 'CREATE TABLE IF NOT EXISTS rt_call_analytics_customers (account_id VARCHAR(12) PRIMARY KEY, subscription_id VARCHAR(64))'
-  pgdb.create_table(query, (err, res) => {
-      if (err) {
-        console.log(err, res)
-        callback(err, err.message)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-      }
-    })
-}
-*/
+
 function updateCustomersDb(accountId, subscriptionId){
   var query = "INSERT INTO rt_call_analytics_customers (account_id, subscription_id)"
   query += " VALUES ($1,$2)"

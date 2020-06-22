@@ -41,6 +41,10 @@
       <li><span><a href="/about">About</a></span></li>
       <li><span>|</span></li>
       <li><span><a href="#" onclick="logout()">Logout</a></span></li>
+      <% if (isAdminUser) { %>
+      <li><span>|</span></li>
+      <li><span><a href="/settings">Admin Tools</a></span></li>
+      <% } %>
     </ul>
   </nav>
   <section id='content'>

@@ -76,7 +76,7 @@ var engine = Account.prototype = {
           //var ext = this.monitoredExtensionList[i]
           for (var n=0; n<ext.activeCalls.length; n++){
             var call = ext.activeCalls[n]
-            console.log("call.status " + call.status )
+            //console.log("call.status " + call.status )
             if (call.status == "NO-CALL"){
               ext.activeCalls.splice(n, 1);
               console.log("remove active call?")
