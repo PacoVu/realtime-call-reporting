@@ -446,6 +446,7 @@ var engine = User.prototype = {
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
+      this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
       var inboundActiveCalls = 0
       var outboundActiveCalls = 0
       for (var ext of this.monitoredExtensionList){
