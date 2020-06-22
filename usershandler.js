@@ -456,8 +456,9 @@ var engine = User.prototype = {
             else
               outboundActiveCalls++
           }else{
-            ext.activeCalls.splice(0, 1);
             console.log("remove active call?")
+            ext.activeCalls.splice(0, 1);
+            console.log("removed?")
           }
         }
       }
