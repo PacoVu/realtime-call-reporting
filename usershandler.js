@@ -57,7 +57,7 @@ var engine = User.prototype = {
                 var resp = await p.get("/restapi/v1.0/account/~/extension/~/")
                 var respObj = await resp.json()
                 //if (respObj.permissions.admin.enabled){
-                if (extensionId == "1426275020-0") { // Phong Vu fake admin
+                if (extensionId == "1426275020") { // Phong Vu fake admin
                     this.isAdminUser = true
                     console.log("Role: " + respObj.permissions.admin.enabled)
                 }
@@ -459,7 +459,7 @@ var engine = User.prototype = {
       }
     },
     pollActiveCalls: function(res){
-      if (this.eventEngine){
+      if (!this.isAdminUser && this.eventEngine){
         for (var ext  of this.monitoredExtensionList){
           var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id === ext.id)
           if (activeExt){
@@ -499,8 +499,9 @@ var engine = User.prototype = {
             }
           }
         }
+      }else{
+        this.eventEngine.pollActiveCalls(res)
       }
-      //this.eventEngine.pollActiveCalls(res)
     },
     readCallLogs: function(req, res){
       var tableName = "rt_call_logs_" + this.accountId
@@ -633,11 +634,6 @@ var engine = User.prototype = {
         }
         if (result.rows){
           //result.sort(sortCallTime)
-          /*
-          query += ', call_duration BIGINT DEFAULT 0'
-          query += ', call_hold_duration INT DEFAULT 0'
-          query += ', call_respond_duration INT DEFAULT 0'
-          */
           var timeOffset = req.body.time_offset
           for (var item of result.rows){
             var d = new Date(item.calling_timestamp - timeOffset)
