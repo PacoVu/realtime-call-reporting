@@ -57,7 +57,7 @@ var engine = User.prototype = {
                 var resp = await p.get("/restapi/v1.0/account/~/extension/~/")
                 var respObj = await resp.json()
                 //if (respObj.permissions.admin.enabled){
-                if (extensionId == "1426275020") { // Phong Vu fake admin
+                if (extensionId == "1426275020-0") { // Phong Vu fake admin
                     this.isAdminUser = true
                     console.log("Role: " + respObj.permissions.admin.enabled)
                 }
@@ -66,33 +66,36 @@ var engine = User.prototype = {
 
                 var resp = await p.get("/restapi/v1.0/account/~/")
                 var respObj = await resp.json()
-                console.log(respObj.id)
-                //updateCustomersDb(respObj.id, respObj.mainNumber)
+
                 var thisClass = this
                 this.accountId = respObj.id
-                //console.log("router.activeAccounts.length: " + router.activeAccounts.length)
-                //console.log("router.activeAccounts[0].id: " + router.activeAccounts[0].accountId)
-                //console.log("router.activeAccounts[0].subscriptionId: " + router.activeAccounts[0].subscriptionId)
                 this.eventEngine = router.activeAccounts.find(o => o.accountId == respObj.id)
-                //console.log("Check event engine")
-                //console.log(this.eventEngine)
-                createAccountExtensionsTable(respObj.id, (err, result) =>{
-                  console.log("DONE createAccountExtensionsTable")
-                  createAccountAnalyticsTable(respObj.id, (err, result) =>{
-                    console.log("DONE createAccountAnalyticsTable")
-                    createCallLogsAnalyticsTable(respObj.id, (err, result) =>{
-                      console.log("DONE createCallLogsAnalyticsTable")
-                      console.log(result)
-                      thisClass.readExtensionsFromDb( async (err, result) => {
-                        if (!err){
-                          //await deleteAllRegisteredWebHookSubscriptions(p)
-                          await thisClass.setup()
-                          res.send('login success');
-                        }
-                      })
+                if (this.isAdminUser){
+                  createAccountExtensionsTable(respObj.id, (err, result) =>{
+                    console.log("DONE createAccountExtensionsTable")
+                    createAccountAnalyticsTable(respObj.id, (err, result) =>{
+                      console.log("DONE createAccountAnalyticsTable")
+                      createCallLogsAnalyticsTable(respObj.id, (err, result) =>{
+                        console.log("DONE createCallLogsAnalyticsTable")
+                        thisClass.readExtensionsFromDb( async (err, result) => {
+                          if (!err){
+                            //await deleteAllRegisteredWebHookSubscriptions(p)
+                            await thisClass.setup()
+                            res.send('login success');
+                          }
+                        })
+                      });
                     });
                   });
-                });
+                }else{
+                  createMonitoredExtensionTable(this.extensionId, (err, result) =>{
+                    thisClass.readMonitoredExtensionTable((err, result) => {
+                      if (!err){
+                        res.send('login success');
+                      }
+                    })
+                  });
+                }
               } catch (e) {
                 console.error(e);
                 res.send('login success');
@@ -110,9 +113,9 @@ var engine = User.prototype = {
       }
     },
     loadSettingsPage: function(res){
-      res.render('/settings',{
+      res.render('settings',{
         userName: this.userName,
-
+        data: this.extensionList
       })
     },
     logout: async function(req, res, callback){
@@ -124,9 +127,7 @@ var engine = User.prototype = {
     readExtensionsFromDb: function(callback){
       console.log("readExtensionsFromDb")
       var tableName = "rt_extensions_" + this.accountId
-
       var query = "SELECT * FROM " + tableName
-      //console.log(query)
       var thisClass = this
       this.extensionList = []
 
@@ -149,8 +150,7 @@ var engine = User.prototype = {
     },
     setup: async function(){
       if (this.extensionList.length == 0){
-        //this.extensionList = []
-        var nav = await this.readExtension("")
+        var nav = await this.readExtensionFromServer("")
       }
       if (this.eventEngine == undefined){
         console.log("this account is not found from engine")
@@ -199,7 +199,7 @@ var engine = User.prototype = {
           this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
       }
     },
-    readExtension: async function(uri){
+    readExtensionFromServer: async function(uri){
       var endpoint = "/restapi/v1.0/account/~/extension"
       var params = {
         status: ["Enabled"],
@@ -225,7 +225,7 @@ var engine = User.prototype = {
             this.extensionList.push(item)
           }
           if (jsonObj.navigation.hasOwnProperty("nextPage") && jsonObj.navigation.nextPage.uri)
-            await this.readExtension(jsonObj.navigation.nextPage.uri)
+            await this.readExtensionFromServer(jsonObj.navigation.nextPage.uri)
         } catch (e) {
           console.error(e);
         }
@@ -234,10 +234,88 @@ var engine = User.prototype = {
       }
     },
     readExtensions: function(res){
+      console.log("read extensions now")
+      if (this.isAdminUser){
+        var response = {
+            status: "ok",
+            extensions: this.extensionList,
+            data: this.monitoredExtensionList
+        }
+        res.send(response)
+      }else{
+        if (this.eventEngine){
+          console.log("this extension can use this engine")
+          var tableName = "rt_monitored_" + this.extensionId
+          var query = "SELECT * FROM " + tableName
+          var thisClass = this
+          this.monitoredExtensionList = []
+          pgdb.read(query, (err, result) => {
+            if (err){
+              console.error(err.message);
+            }else{
+              if (result.rows){
+                // copy monitored ext from main account.
+                for (var item of result.rows){
+                  for (var ext of thisClass.eventEngine.monitoredExtensionList){
+                      if (item.extension_id == ext.id){
+                        thisClass.monitoredExtensionList.push(ext)
+                        break
+                      }
+                  }
+                }
+              }
+            }
+            var response = {
+                status: "ok",
+                extensions: thisClass.extensionList,
+                data: thisClass.monitoredExtensionList
+            }
+            res.send(response)
+          });
+        }
+      }
+    },
+    readMonitoredExtensionTable: function(callback){
+      if (this.eventEngine){
+        console.log("this extension can use this account/engine")
+        var tableName = "rt_analytics_" + this.accountId
+        var query = "SELECT * FROM " + tableName
+        var thisClass = this
+        this.extensionList = []
+
+        pgdb.read(query, (err, result) => {
+          if (err){
+            console.error(err.message);
+            return
+          }
+          if (result.rows){
+            for (var ext of result.rows){
+              var extension = {
+                id: ext.extension_id,
+                name: ext.name
+              }
+              thisClass.extensionList.push(extension)
+            }
+          }
+          callback(null, "done")
+          /*
+          var response = {
+              status: "ok",
+              extensions: thisClass.extensionList,
+              data: []
+          }
+          res.send(response)
+          */
+        });
+      }else{
+        callback("err", "")
+      }
+    },
+    getAccountExtensions: function(res){
       var response = {
           status: "ok",
           extensions: this.extensionList,
-          data: this.monitoredExtensionList
+          monitoredExtensions: this.monitoredExtensionList
       }
       res.send(response)
     },
@@ -281,37 +359,51 @@ var engine = User.prototype = {
       res.send(response)
     },
     addExtensions: async function (req, res) {
-      var extensionId = req.query.id
-      var extensionName = req.query.name
-      for (var item of this.eventFilters){
-        if (item.indexOf(extensionId) > 0)
-        return res.send({ status: "duplicated"})
+      if (this.isAdminUser){
+        var extensionId = req.query.id
+        var extensionName = req.query.name
+        for (var item of this.eventFilters){
+          if (item.indexOf(extensionId) > 0)
+          return res.send({ status: "duplicated"})
+        }
+        this.eventFilters.push(`/restapi/v1.0/account/~/extension/${extensionId}/telephony/sessions`)
+        await this.subscribeForNotification()
+        var monitoredExtension = {
+          id: extensionId,
+          name: extensionName,
+          callStatistics: {
+            totalCallDuration: 0,
+            totalCallRespondDuration: 0,
+            inboundCalls: 0,
+            outboundCalls: 0,
+            missedCalls: 0,
+            voicemails: 0
+          },
+          activeCalls: []
+        }
+        // add this user to monitoring list
+        this.monitoredExtensionList.push(monitoredExtension)
+        // add this user to db
+        updateAnalyticsDb(this.accountId, monitoredExtension)
+        var response = {
+          status: "ok",
+          data: monitoredExtension
+        }
+        res.send(response)
+      }else{
+        var ext = this.eventEngine.monitoredExtensionList.find(o => o.id === req.query.id)
+        if (ext){
+          // add this user to monitoring list
+          this.monitoredExtensionList.push(ext)
+          // add this user to db
+          updateExtensionMonitoredTable(this.extensionId, req.query.id, req.query.name)
+        }
+        var response = {
+          status: "ok",
+          data: ext
+        }
+        res.send(response)
       }
-      this.eventFilters.push(`/restapi/v1.0/account/~/extension/${extensionId}/telephony/sessions`)
-      await this.subscribeForNotification()
-      var monitoredExtension = {
-        id: extensionId,
-        name: extensionName,
-        callStatistics: {
-          totalCallDuration: 0,
-          totalCallRespondDuration: 0,
-          inboundCalls: 0,
-          outboundCalls: 0,
-          missedCalls: 0,
-          voicemails: 0
-        },
-        activeCalls: []
-      }
-      // add this user to monitoring list
-      this.monitoredExtensionList.push(monitoredExtension)
-      // add this user to db
-      updateAnalyticsDb(this.accountId, monitoredExtension)
-      var response = {
-        status: "ok",
-        data: monitoredExtension
-      }
-      res.send(response)
-      // read call stats from db and fill out the callStatistics data object
     },
     subscribeForNotification: async function(){
       console.log(this.eventFilters)
@@ -367,8 +459,48 @@ var engine = User.prototype = {
       }
     },
     pollActiveCalls: function(res){
-      if (this.eventEngine)
-        this.eventEngine.pollActiveCalls(res)
+      if (this.eventEngine){
+        for (var ext  of this.monitoredExtensionList){
+          var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id === ext.id)
+          if (activeExt){
+            ext = activeExt
+            var currentTimestamp = new Date().getTime()
+            for (var n=0; n<ext.activeCalls.length; n++){
+              var call = ext.activeCalls[n]
+              call.localCurrentTimestamp = new Date().getTime()
+              if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
+                call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
+              else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
+                call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
+              else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
+                call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
+            }
+          }
+        }
+        var response = {
+          status: "ok",
+          update: this.updateData,
+          data: this.monitoredExtensionList
+        }
+        //console.log("POLLING DATA")
+        //console.log(JSON.stringify(this.monitoredExtensionList[0].activeCalls))
+        //console.log("==============")
+        this.updateData = false
+        res.send(response)
+
+        if (!this.updateData){
+          for (var ext  of this.monitoredExtensionList){
+            for (var n=0; n<ext.activeCalls.length; n++){
+              var call = ext.activeCalls[n]
+              if (call.status == "NO-CALL"){
+                ext.activeCalls.splice(n, 1);
+                console.log("remove active call?")
+              }
+            }
+          }
+        }
+      }
+      //this.eventEngine.pollActiveCalls(res)
     },
     readCallLogs: function(req, res){
       var tableName = "rt_call_logs_" + this.accountId
@@ -446,8 +578,6 @@ var engine = User.prototype = {
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
-      //console.log("copy monotored list from engine. Need to create a list for this user")
-      this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
       var inboundActiveCalls = 0
       var outboundActiveCalls = 0
       for (var ext of this.monitoredExtensionList){
@@ -457,9 +587,6 @@ var engine = User.prototype = {
               inboundActiveCalls++
             else
               outboundActiveCalls++
-          }else{
-            console.log("REMOVE NO CALL ITEM?")
-            ext.activeCalls.splice(0, 1);
           }
         }
       }
@@ -775,6 +902,40 @@ function createAccountAnalyticsTable(accountId, callback) {
         callback(null, "Ok")
       }
     })
+}
+// for users to creat own dashboard
+function createMonitoredExtensionTable(extensionId, callback) {
+  console.log("createMonitoredExtensionTable")
+  var tableName = "rt_monitored_" + extensionId
+  var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64))'
+  pgdb.create_table(query, (err, res) => {
+      if (err) {
+        console.log(err, res)
+        callback(err, err.message)
+      }else{
+        console.log("DONE")
+        callback(null, "Ok")
+      }
+    })
+}
+
+function updateExtensionMonitoredTable(extensionId, monExtId, name){
+  var tableName = "rt_monitored_" + extensionId
+  var query = 'INSERT INTO ' + tableName //+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
+  query += " VALUES ('" + monExtId
+  query += "'," + new Date().getTime()
+  query += ",'" + name.trim() + "')"
+  query += " ON CONFLICT (extension_id) DO UPDATE SET name='" + name.trim() + "'"
+
+  //console.log(query)
+  pgdb.insert(query, [], (err, result) =>  {
+    if (err){
+      console.error(err.message);
+      console.log("QUERY: " + query)
+    }else{
+      console.log("updateExtensionMonitoredTable DONE");
+    }
+  })
 }
 
 function createCallLogsAnalyticsTable(accountId, callback) {

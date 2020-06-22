@@ -170,14 +170,6 @@ function createAgentList() {
     optionText = ext.name;
     optionValue = ext.id;
     $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
-    if (ext.name == "John Wang")
-      alert(ext.name)
-    if (ext.name == "Phong Vu")
-      alert(ext.name)
-    if (ext.name == "Dibyendu Roy")
-      alert(ext.name)
-    if (ext.name == "Vyshakh Babji")
-      alert(ext.name)
   }
 }
 function phoneBlock(id){
