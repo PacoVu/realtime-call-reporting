@@ -1,4 +1,4 @@
-var canPoll = false
+//var canPoll = false
 var agentList = []
 var timeOffset = 0
 
@@ -23,7 +23,7 @@ function updateSummary(total, idle, ringing, connected, hold){
   var html = "<b>Agent #:</b> " + total
   html += " <b>Idle #:</b> " + idle
   html += " <b>Ringing #:</b> " + ringing
-  htnl += " <b>Connected #:</b> " + connected
+  html += " <b>Connected #:</b> " + connected
   html += " <b>Hold #:</b> " + hold
   $("#summary").html(html)
 }
@@ -31,7 +31,7 @@ function updateSummary(total, idle, ringing, connected, hold){
 function pollResult(){
   var url = "poll_calls"
   var getting = $.get( url );
-  canPoll = true
+  //canPoll = true
   getting.done(function( res ) {
     if (res.status == "ok") {
       if (res.data.length){
@@ -57,6 +57,12 @@ function pollResult(){
                 if ($("#active_calls_"+extension.id).length == 0)
                   $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
               }else{
+                if(call.status == "RINGING")
+                  ringing++
+                else if(call.status == "CONNECTED")
+                  connected++
+                else if(call.status == "HOLD")
+                  hold++
                 $("#title_"+extension.id).html("Active call stats")
                 $("#active_calls_"+extension.id).empty()
                 $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
@@ -74,7 +80,7 @@ function pollResult(){
         updateSummary(res.data.length, idle, ringing, connected, hold)
       }
       window.setTimeout(function(){
-        if (canPoll)
+        //if (canPoll)
           pollResult()
       }, 1000)
     }else{
