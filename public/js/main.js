@@ -19,9 +19,8 @@ function init(){
     pollResult()
 }
 
-function updateSummary(total, idle, ringing, connected, hold){
+function updateSummary(total, ringing, connected, hold){
   var html = "<b>Agent #:</b> " + total
-  html += " <b>Idle #:</b> " + idle
   html += " <b>Ringing #:</b> " + ringing
   html += " <b>Connected #:</b> " + connected
   html += " <b>Hold #:</b> " + hold
@@ -35,7 +34,6 @@ function pollResult(){
   getting.done(function( res ) {
     if (res.status == "ok") {
       if (res.data.length){
-        var idle = 0
         var ringing = 0
         var connected = 0
         var hold = 0
@@ -45,7 +43,6 @@ function pollResult(){
           if (extension.activeCalls.length){
             for (var call of extension.activeCalls){
               if (call.status == "NO-CALL"){
-                idle++
                 var stats = extension.callStatistics
                 $("#title_"+extension.id).html("Last call stats")
                 $("#stats_"+extension.id).empty()
@@ -77,7 +74,7 @@ function pollResult(){
             //$("#active_calls_"+extension.id).append(makeNoCallBlock())
           }
         }
-        updateSummary(res.data.length, idle, ringing, connected, hold)
+        updateSummary(res.data.length, ringing, connected, hold)
       }
       window.setTimeout(function(){
         //if (canPoll)
