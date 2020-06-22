@@ -446,13 +446,13 @@ var engine = User.prototype = {
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
-      console.log("copy monotored list from engine. Need to create a list for this user")
+      //console.log("copy monotored list from engine. Need to create a list for this user")
       this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
       var inboundActiveCalls = 0
       var outboundActiveCalls = 0
       for (var ext of this.monitoredExtensionList){
         if (ext.activeCalls.length){
-          if (ext.activeCalls[0] != "NO-CALL"){
+          if (ext.activeCalls[0].status != "NO-CALL"){
             if (ext.activeCalls[0].direction == "Inbound")
               inboundActiveCalls++
             else
@@ -460,7 +460,6 @@ var engine = User.prototype = {
           }else{
             console.log("REMOVE NO CALL ITEM?")
             ext.activeCalls.splice(0, 1);
-            console.log("removed?")
           }
         }
       }
