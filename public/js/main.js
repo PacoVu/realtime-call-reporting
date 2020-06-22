@@ -16,6 +16,7 @@ function init(){
     }
     readExtensions()
     timeOffset = new Date().getTimezoneOffset()*60000;
+    pollResult()
 }
 
 function updateSummary(total, idle, ringing, connected, hold){
@@ -263,7 +264,6 @@ function readExtensions(){
         html += `</div>`
         $('#extension_list').append(html);
       }
-      pollResult()
     }
   });
 }
