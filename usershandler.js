@@ -446,6 +446,7 @@ var engine = User.prototype = {
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
+      console.log("copy monotored list from engine. Need to create a list for this user")
       this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
       var inboundActiveCalls = 0
       var outboundActiveCalls = 0
@@ -457,7 +458,7 @@ var engine = User.prototype = {
             else
               outboundActiveCalls++
           }else{
-            console.log("remove active call?")
+            console.log("REMOVE NO CALL ITEM?")
             ext.activeCalls.splice(0, 1);
             console.log("removed?")
           }
