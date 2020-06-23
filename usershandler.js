@@ -71,6 +71,7 @@ var engine = User.prototype = {
                 this.accountId = respObj.id
                 this.eventEngine = router.activeAccounts.find(o => o.accountId == respObj.id)
                 if (this.isAdminUser){
+                  await readAllRegisteredWebHookSubscriptions()
                   createAccountExtensionsTable(respObj.id, (err, result) =>{
                     console.log("DONE createAccountExtensionsTable")
                     createAccountAnalyticsTable(respObj.id, (err, result) =>{
@@ -166,6 +167,7 @@ var engine = User.prototype = {
             return
           }
           if (result.rows){
+            result.rows.sort(sortByAddedDate)
             for (var ext of result.rows){
               var extension = {
                 id: ext.extension_id,
@@ -254,6 +256,7 @@ var engine = User.prototype = {
               console.error(err.message);
             }else{
               if (result.rows){
+                result.rows.sort(sortByAddedDate)
                 // copy monitored ext from main account.
                 for (var item of result.rows){
                   for (var ext of thisClass.eventEngine.monitoredExtensionList){
@@ -711,7 +714,7 @@ var engine = User.prototype = {
         res.send(response)
       });
     },
-    checkSubscription: function(){
+    checkSubscription: async function(){
       readAllRegisteredWebHookSubscriptions()
     }
 };
@@ -1046,4 +1049,7 @@ function updateCustomersDb(accountId, subscriptionId){
       console.log("updateCustomersDb DONE");
     }
   })
+}
+function sortByAddedDate(a, b){
+  return b.added_timestamp - a.added_timestamp;
 }
