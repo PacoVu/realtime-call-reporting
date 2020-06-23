@@ -71,7 +71,7 @@ var engine = User.prototype = {
                 this.accountId = respObj.id
                 this.eventEngine = router.activeAccounts.find(o => o.accountId == respObj.id)
                 if (this.isAdminUser){
-                  await readAllRegisteredWebHookSubscriptions()
+                  await readAllRegisteredWebHookSubscriptions(p)
                   createAccountExtensionsTable(respObj.id, (err, result) =>{
                     console.log("DONE createAccountExtensionsTable")
                     createAccountAnalyticsTable(respObj.id, (err, result) =>{
@@ -806,8 +806,8 @@ async function deleteAllRegisteredWebHookSubscriptions(p) {
   }
 }
 
-async function readAllRegisteredWebHookSubscriptions() {
-  let response = await rcsdk.get('/restapi/v1.0/subscription')
+async function readAllRegisteredWebHookSubscriptions(p) {
+  let response = await p.get('/restapi/v1.0/subscription')
   let json = await response.json();
   if (json.records.length > 0){
     for (var record of json.records) {
