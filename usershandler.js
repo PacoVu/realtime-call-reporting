@@ -333,25 +333,33 @@ var engine = User.prototype = {
     },
     removeExtension: async function(req, res){
       var id = req.query.id
-      //console.log(this.eventFilters)
-      for (var i=0; i< this.eventFilters.length; i++){
-        var filter = this.eventFilters[i]
-        if (filter.indexOf(id) > 0){
-          this.eventFilters.splice(i, 1)
-          break
+      if (this.isAdminUser){
+        for (var i=0; i< this.eventFilters.length; i++){
+          var filter = this.eventFilters[i]
+          if (filter.indexOf(id) > 0){
+            this.eventFilters.splice(i, 1)
+            break
+          }
+        }
+        await this.subscribeForNotification()
+        removeExtensionFromAccountAnalyticsTable(this.accountId, id)
+        for (var i=0; i< this.monitoredExtensionList.length; i++){
+          var extension = this.monitoredExtensionList[i]
+          if (extension.id == id){
+            this.monitoredExtensionList.splice(i, 1)
+            break
+          }
+        }
+      }else{
+        removeExtensionFromMonitoredTable(this.extensionId, id)
+        for (var i=0; i< this.monitoredExtensionList.length; i++){
+          var extension = this.monitoredExtensionList[i]
+          if (extension.id == id){
+            this.monitoredExtensionList.splice(i, 1)
+            break
+          }
         }
       }
-      await this.subscribeForNotification()
-      for (var i=0; i< this.monitoredExtensionList.length; i++){
-        var extension = this.monitoredExtensionList[i]
-        if (extension.id == id){
-          this.monitoredExtensionList.splice(i, 1)
-          break
-        }
-      }
-
-      //console.log("AFTER")
-      //console.log(this.eventFilters)
       response = {
         status: "ok",
         data: this.monitoredExtensionList
@@ -870,6 +878,21 @@ function updateAnalyticsDb(accountId, extension){
   })
 }
 
+function removeExtensionFromAccountAnalyticsTable(accountId, monExtId){
+  var tableName = "rt_analytics_" + accountId
+  var query = 'DELETE * FROM ' + tableName
+  query += " WHERE extension_id='" + monExtId + "'"
+
+  pgdb.remove(query, (err, result) =>  {
+    if (err){
+      console.error(err.message);
+      console.log("QUERY: " + query)
+    }else{
+      console.log("removeExtensionFromAccountAnalyticsTable DONE");
+    }
+  })
+}
+
 function createAccountExtensionsTable(accountId, callback) {
   console.log("createAccountExtensionsTable")
   var tableName = "rt_extensions_" + accountId
@@ -930,6 +953,21 @@ function updateExtensionMonitoredTable(extensionId, monExtId, name){
       console.log("QUERY: " + query)
     }else{
       console.log("updateExtensionMonitoredTable DONE");
+    }
+  })
+}
+
+function removeExtensionFromMonitoredTable(extensionId, monExtId){
+  var tableName = "rt_monitored_" + extensionId
+  var query = 'DELETE * FROM ' + tableName //+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
+  query += " WHERE extension_id='" + monExtId + "'"
+
+  pgdb.remove(query, (err, result) =>  {
+    if (err){
+      console.error(err.message);
+      console.log("QUERY: " + query)
+    }else{
+      console.log("removeExtensionFromMonitoredTable DONE");
     }
   })
 }

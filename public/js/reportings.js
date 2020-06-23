@@ -43,7 +43,6 @@ function updateSummary(){
 }
 
 function readReports(){
-  updateSummary()
   var url = "read_reports"
   var exts = $("#extensions").val()
   var extensionIds = ""
@@ -74,6 +73,7 @@ function readReports(){
       CallByActionGraph("second-row", res.data)
       LongestActivityTime("second-row", res.data)
       CallsDensityGraph("third-row", res.data)
+      updateSummary()
     }
     window.setTimeout(function(){
       if (canPoll)
@@ -101,16 +101,6 @@ function LongestActivityTime(row, data){
   drawBarChart(params, row);
 }
 
-function ActiveCallsByDirection(row, data){
-    var params = [];
-    var arr = ['Active Calls', 'Calls'];
-    params.push(arr);
-    var item = ["Inbound", data.inboundActiveCalls];
-    params.push(item);
-    item = ["Outbound", data.outboundActiveCalls];
-    params.push(item);
-    drawGauge(params, row)
-}
 function CallsByDurationGraph(row, data){
     var params = [];
     var arr = ['Total calls duration (hr)', 'Duration', { role: "style" }];
@@ -131,7 +121,7 @@ function CallsByDurationGraph(row, data){
 
 function CallByActionGraph(row, data){
     var params = [];
-    var arr = ['Call by Action', 'Message', { role: "style" } ];
+    var arr = ['Call by Result (# calls)', 'Message', { role: "style" } ];
     params.push(arr);
 
     var item = ["Connected", data.connected, "purple"];
@@ -154,7 +144,7 @@ function CallByActionGraph(row, data){
 
 function CallsByDirectionGraph(row, data){
     var params = [];
-    var arr = ['Calls by direction', 'Direction', { role: "style" } ];
+    var arr = ['Calls by direction (# calls)', 'Direction', { role: "style" } ];
     params.push(arr);
     var item = ["Inbound", data.inbound, "blue"];
     params.push(item);
@@ -164,9 +154,24 @@ function CallsByDirectionGraph(row, data){
     drawBarChart(params, row);
 }
 
-function drawGauge(params, row){
-  var data = google.visualization.arrayToDataTable(params);
+function ActiveCallsByDirection(row, data){
+    var params = [];
+    var arr = ['Agents', 'Calls'];
+    params.push(arr);
+    var item = ["Active Inbound Calls", data.inboundActiveCalls];
+    params.push(item);
+    item = ["Active Outbound Calls", data.outboundActiveCalls];
+    params.push(item);
+    var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
+    item = ["Idle", idle];
+    params.push(item);
 
+    //drawGauge(row, params)
+    drawPieChart(row, params)
+}
+
+function drawGauge(row, params){
+  var data = google.visualization.arrayToDataTable(params);
   var options = {
     title: params[0][0],
     width: 400, height: 200,
@@ -174,12 +179,21 @@ function drawGauge(params, row){
     yellowFrom:75, yellowTo: 90,
     minorTicks: 5
   };
-
-  //var element = document.createElement('div')
-  //$(element).addClass("col-sm-4")
-  //$("#"+row).append(element)
   var element = document.getElementById('first-row')
   var chart = new google.visualization.Gauge(element);
+  chart.draw(data, options);
+}
+
+function drawPieChart(row, params){
+  var data = google.visualization.arrayToDataTable(params);
+  var options = {
+    title: 'Agents by Activity (# agents)',
+    width: 400,
+    height: 200,
+    pieHole: 0.4,
+  };
+  var element = document.getElementById(row)
+  var chart = new google.visualization.PieChart(element);
   chart.draw(data, options);
 }
 
@@ -196,7 +210,7 @@ function drawBarChart(params, row){
 
     var options = {
       title: params[0][0],
-      //chartArea:{left:0,top:0,width:"90%",height:"100%"},
+      vAxis: {minValue: 0},
       width: "100%",
       height: 300,
       bar: {groupWidth: "90%"},
@@ -216,7 +230,7 @@ function drawScatterChart(params, title, row) {
       title: title,
       //width: "100%",
       height: 300,
-      vAxis: {title: 'Calls'},
+      vAxis: {title: 'Calls', minValue: 0},
       hAxis: {title: '24-Hour', minValue: 0, maxValue: 23, gridlines: { count: 0 }},
       viewWindow: {minValue: 0, maxValue: 23},
       //pointShape: 'diamond',
