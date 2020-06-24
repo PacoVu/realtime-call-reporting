@@ -40,9 +40,10 @@ function autoStart(){
         for (var item of result.rows){
           console.log("account info: " + item.account_id + " / " + item.subscription_id)
           var account = new Account(item.account_id, item.subscription_id)
-          account.setup()
-          activeAccounts.push(account)
-          console.log("activeAccounts.length: " + activeAccounts.length)
+          account.setup((err, result) => {
+            activeAccounts.push(account)
+            console.log("activeAccounts.length: " + activeAccounts.length)
+          })
         }
       }
     }
@@ -70,9 +71,8 @@ var router = module.exports = {
       var id = new Date().getTime()
       req.session.userId = id;
       console.log("req.session.userId: " + req.session.userId)
-      //var account = activeAccounts.find(o => o.subscriptionId === jsonObj.subscriptionId)
-      //console.log(account)
-      var user = new User(id)
+      //var user = new User(id)
+      var user = new User(id, users.length) // just for test multiple agent users
       users.push(user)
       var p = user.getPlatform()
       if (p != null){
@@ -161,6 +161,13 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].loadReportingsPage(res)
   },
+  resetAccountSubscription: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    console.log("index " + index)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].resetAccountSubscription(req, res)
+  },
   getAccountExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)
     console.log("index " + index)
@@ -175,17 +182,29 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].readExtensions(res)
   },
-  addExtensions: function(req, res){
+  addExtension: function(req, res){
     var index = getUserIndex(req.session.userId)
     if (index < 0)
       return this.forceLogin(req, res)
-    users[index].addExtensions(req, res)
+    users[index].addExtension(req, res)
   },
   removeExtension: function(req, res){
     var index = getUserIndex(req.session.userId)
     if (index < 0)
       return this.forceLogin(req, res)
     users[index].removeExtension(req, res)
+  },
+  adminAddExtensions: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].adminAddExtensions(req, res)
+  },
+  adminRemoveExtensions: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].adminRemoveExtensions(req, res)
   },
   pollActiveCalls: function(req, res){
     var index = getUserIndex(req.session.userId)

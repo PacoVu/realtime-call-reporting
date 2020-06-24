@@ -46,20 +46,36 @@
   <section id='content'>
     <div id="option_bar" class="col-xs-12 row option_bar">
       <div class="form-inline">
+          <label>Account Extensions&nbsp;</label>
           <label>Pages&nbsp;</label><select id="pages" class="form-control" onchange="createAgentList()"></select>&nbsp;&nbsp;
-          <label>Agents&nbsp;</label><select id="extensions" class="form-control"></select>&nbsp;&nbsp;
-          <input type="button" id="add_extension" onclick="addExtension()" class="form-control btn-rc" value="Add to dashboard"></input>&nbsp;&nbsp;
-          <select id="monitored_extensions" class="form-control">
-          </select>
+          <select id="extensions" onchange="selectExtension()" class="form-control"></select>&nbsp;&nbsp;
+          <input type="button" id="select_extension" onclick="selectExtension()" class="form-control btn-rc" value="Select"></input>&nbsp;&nbsp;
           <input type="text" class="form-control search-input" placeholder="Search agent name" value="" id="search" oninput="searchAgent()">
+
+          <!--label>Current Monitored Agents&nbsp;</label-->
+          <!--select id="monitored_extensions" class="form-control"></select-->
+          <input type="button" onclick="resetSubscription()" class="form-control btn-rc navbar-right" value="Reset Subscription"></input>
+          <span class="form-control navbar-right">Delete <input type="checkbox" id="delete-sub"></input></span>
       </div>
+      <!--<label>New Monitored Agents&nbsp;</label><select id="new_extensions" multiple width=300 height=300></select-->
     </div>
     <br/><br/>
-    <div class="row table-content">
-      <div id="extension_list" class="col-xs-12 scrollable_list">
+    <div class="row col-xs-12">
+      <div class="header col-xs-12">
+        <div class="col-sm-3 title">New Extensions</div>
+        <div class="col-sm-3 title">Current Monitored Agents</div>
+      </div>
+      <div id="content-list" class="col-xs-12 scrollable_list">
+        <div id="new_extensions" class="col-sm-2 scrollable_list name_list"></div>
+        <div class="col-sm-1">
+          <input type="button" id="add_extension" onclick="addExtensions()" class="form-control" value="Add to Monitor"></input>&nbsp;&nbsp;&nbsp;&nbsp;
+        </div>
+        <div id="monitored_extensions" class="col-sm-2 scrollable_list name_list"></div>
+        <div class="col-sm-1">
+          <input type="button" id="remove_extensions" onclick="confirmRemove()" class="form-control" value="Remove Extensions"></input>
+        </div>
       </div>
     </div>
-
   </section>
   <%- include('_footer') %>
 </body>

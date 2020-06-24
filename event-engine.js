@@ -9,11 +9,10 @@ function Account(accountId, subscriptionId){
   this.extensionList = []
   this.monitoredExtensionList = []
   this.updateData = false
-  this.localTimeOffset = (3600 * 7 * 1000)
 }
 
 var engine = Account.prototype = {
-    setup: async function(){
+    setup: async function(callback){
       var tableName = "rt_analytics_" + this.accountId
       var query = "SELECT * FROM " + tableName
       var thisClass = this
@@ -24,7 +23,9 @@ var engine = Account.prototype = {
           return
         }
         if (result.rows){
+          result.rows.sort(sortByAddedDate)
           for (var ext of result.rows){
+            console.log(ext.name)
             var extension = {
               id: ext.extension_id,
               name: ext.name,
@@ -41,9 +42,44 @@ var engine = Account.prototype = {
             thisClass.monitoredExtensionList.push(extension)
           }
         }
-        console.log("Done autosetup")
-        //updateAccountExtensionsDb(thisClass.accountId, thisClass.extensionList)
+        thisClass.readAccountExtensionsFromTable((err, result) => {
+          console.log("Done autosetup")
+          callback(null, "Done engine setup")
+        })
       });
+    },
+    readAccountExtensionsFromTable: function(callback){
+      console.log("readAccountExtensionsFromTable")
+      var tableName = "rt_extensions_" + this.accountId
+      var query = "SELECT * FROM " + tableName
+      var thisClass = this
+      this.extensionList = []
+      pgdb.read(query, (err, result) => {
+        if (err){
+          console.error(err.message);
+          callback (err, "")
+        }
+        if (result.rows){
+          for (var ext of result.rows){
+            var extension = {
+              id: ext.extension_id,
+              name: ext.name
+            }
+            thisClass.extensionList.push(extension)
+          }
+          console.log(thisClass.extensionList.length)
+          callback (null, "Done readAccountExtensionsFromTable")
+        }
+      });
+    },
+    removeAccountMonitoredExtension: function(id){
+      for (var i=0; i< this.monitoredExtensionList.length; i++){
+        var extension = this.monitoredExtensionList[i]
+        if (extension.id == id){
+          this.monitoredExtensionList.splice(i, 1)
+          break
+        }
+      }
     },
     pollActiveCalls: function(res){
       for (var ext  of this.monitoredExtensionList){
@@ -121,14 +157,11 @@ var engine = Account.prototype = {
                         if (call.direction == "Inbound" && call.status == "RINGING"){
                           var respondTime = (call.connectingTimestamp - call.ringingTimestamp) / 1000
                           call.callRespondDuration = Math.round(respondTime)
-                          console.log("call ringing time " + call.ringingTimestamp);
-                          console.log("call resp time " + call.callRespondDuration);
                           extension.callStatistics.totalcallRespondDuration += parseInt(call.callRespondDuration)
                         }
                       }
                       call.status = "CONNECTED"
                     }else if(party.status.code == "Disconnected"){
-                      //console.log("IS SECOND CALL DISCONNECTED EVENT ???")
                       if (call.status == "NO-CALL"){
                         console.log("return from here")
                         return
@@ -152,14 +185,13 @@ var engine = Account.prototype = {
                     }else if(party.status.code == "Setup"){
                       if (call.status == "RINGING") { // most probably a disorder sequence
                         call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-                        //call.startTime = new Date(call.callingTimestamp - this.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
                       }
                     }
                     if (party.direction == "Inbound"){
                       if (party.from)
                         call.customerNumber = party.from.phoneNumber
                       else
-                        call.customerNumber = "Private"
+                        call.customerNumber = "Anonymous"
                       if (party.to)
                         call.agentNumber = party.to.phoneNumber
                       else
@@ -177,6 +209,10 @@ var engine = Account.prototype = {
                   // IGNORE for now
                   //var activeCall = this.createNewCallToActiveCall(jsonObj, party)
                   //extension.activeCalls.push(activeCall)
+                  if (extension.activeCalls[0].status == "NO-CALL"){
+                    console.log("replace old inactive call")
+                    extension.activeCalls[0] = this.createNewCallToActiveCall(jsonObj, party)
+                  }
                   break
                 }
               }else{
@@ -271,8 +307,8 @@ var engine = Account.prototype = {
         call.callResult = "Unknown call status"
       }
       call.status = "NO-CALL"
-      updateCallLogDb(this.accountId, extension.id, call)
-      updateAnalyticsDb(this.accountId, extension)
+      updateCallReportTable(this.accountId, extension.id, call)
+      updateAnalyticsTable(this.accountId, extension)
     },
     createNewCallToActiveCall: function (jsonObj, party) {
       // dealing with sequence out of order
@@ -284,7 +320,6 @@ var engine = Account.prototype = {
       var callingTimestamp = 0
       if (party.status.code == "Setup"){
         callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-        //startTime = new Date(callingTimestamp - this.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
         status = "SETUP"
       }else if (party.status.code == "Proceeding"){
         ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
@@ -304,7 +339,6 @@ var engine = Account.prototype = {
                 status: status,
                 direction: party.direction,
                 callingTimestamp: callingTimestamp,
-                //startTime: startTime,
                 callDuration: 0,
                 ringingTimestamp: ringingTimestamp,
                 connectingTimestamp: connectingTimestamp,
@@ -324,191 +358,6 @@ var engine = Account.prototype = {
                 localHoldingTimestamp: 0
               }
       return activeCall
-    },
-    /*
-    readCallLogs: function(req, res){
-      let db = new sqlite3.Database(ANALYTICS_DATABASE);
-      var tableName = "rt_call_logs_" + this.accountId // "analytics_809646016" //
-      var from = new Date(req.body.from).getTime() + this.localTimeOffset
-      var to = new Date(req.body.to).getTime() + this.localTimeOffset
-      var query = `SELECT * FROM ${tableName}`
-      query += ` WHERE (calling_timestamp BETWEEN ${from} AND ${to})`
-      if (req.body.extensions != ""){
-        query += ` AND (extension_id IN ${req.body.extensions})`
-      }
-      if (req.body.direction != "*"){
-        query += ` AND (direction ='${req.body.direction}')`
-      }
-      if (req.body.call_type != "*"){
-        query += ` AND (call_type ='${req.body.call_type}')`
-      }
-      if (req.body.action != "*"){
-        query += ` AND (call_action ='${req.body.action}')`
-      }
-
-      var logs = []
-      var thisClass = this
-      db.all(query, function (err, result) {
-        if (err){
-          console.error(err.message);
-          var response = {
-            status: "ok",
-            data: logs
-          }
-          return res.send(response)
-        }
-        if (result){
-          result.sort(sortCallTime)
-          var options = { year: 'numeric', month: 'short', day: 'numeric' };
-          for (var item of result){
-            var obj = thisClass.monitoredExtensionList.find(o => o.id === item.extension_id)
-            var name = (obj) ? obj.name : "Unknown"
-
-            //var startTime = new Date(item.calling_timestamp).toLocaleDateString("en-US", options)
-            var ringTime = (item.ringing_timestamp > 0) ? new Date(item.ringing_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-            var connectTime = (item.connecting_timestamp> 0) ? new Date(item.connecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-            var call = {
-              id: item.extension_id,
-              name: name,
-              sessionId: item.session_id,
-              customerNumber: item.customer_number,
-              agentNumber: item.agent_number,
-              direction: item.direction,
-              startDate: new Date(item.calling_timestamp - thisClass.localTimeOffset).toLocaleDateString("en-US", options),
-              startTime: new Date(item.calling_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],
-              callDuration: item.call_duration,
-              ringTime: ringTime,
-              connectTime: connectTime,
-              disconnectTime: new Date(item.disconnecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],
-              holdTime: item.holding_timestamp,
-              callHoldDuration: item.call_hold_duration,
-              holdingCount: item.holding_count,
-              callRespondDuration: item.call_respond_duration,
-              callType: item.call_type,
-              callAction: item.call_action,
-              callResult: item.call_result
-            }
-            logs.push(call)
-          }
-        }
-
-        var response = {
-            status: "ok",
-            data: logs
-          }
-        res.send(response)
-      });
-    },
-    readReports: function(req, res){
-      let db = new sqlite3.Database(ANALYTICS_DATABASE);
-      var tableName = "rt_call_logs_" + this.accountId
-      var from = new Date(req.body.from).getTime() + this.localTimeOffset
-      var to = new Date(req.body.to).getTime() + this.localTimeOffset
-      var query = `SELECT * FROM ${tableName}`
-      query += ` WHERE (calling_timestamp BETWEEN ${from} AND ${to})`
-      if (req.body.extensions != ""){
-        query += ` AND (extension_id IN ${req.body.extensions})`
-      }
-      var reports = {
-        inbound: 0,
-        outbound: 0,
-        connected: 0,
-        cancelled: 0,
-        voicemail: 0,
-        missedCall: 0,
-        directCall: 0,
-        ringoutCall: 0,
-        zoomCall: 0,
-        inboundCallTime: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        outboundCallTime: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        missedCallTime: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        voicemailTime: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        totalInboundCallDuration: 0,
-        totalOutboundCallDuration: 0,
-        longestCallDuration: 0,
-        longestTalkTime: 0,
-        longestRespondTime: 0,
-        longestHoldTime: 0,
-        averageRespondTime: 0,
-        averageHoldTime: 0
-      }
-      var thisClass = this
-      db.all(query, function (err, result) {
-        if (err){
-          console.error(err.message);
-          var response = {
-            status: "ok",
-            data: {}
-          }
-          return res.send(response)
-        }
-        if (result){
-          //result.sort(sortCallTime)
-          for (var item of result){
-            var d = new Date(item.calling_timestamp - thisClass.localTimeOffset)
-            var hour = parseInt(d.toISOString().substring(11, 13))
-            if (item.direction == "Inbound"){
-              reports.inbound++
-              reports.inboundCallTime[hour]++
-              if (item.connecting_timestamp > item.ringing_timestamp){
-                var tempTime = (item.connecting_timestamp - item.ringing_timestamp) / 1000
-                if (tempTime < 120){ // cannot be longer than 2 mins
-                  reports.averageRespondTime += tempTime
-                  if (tempTime > reports.longestRespondTime)
-                    reports.longestRespondTime = tempTime
-                }
-              }else{
-                //console.log(item.connecting_timestamp + " == " + item.ringing_timestamp)
-              }
-              reports.totalInboundCallDuration += item.call_duration
-            }else {
-              reports.outbound++
-              reports.outboundCallTime[hour]++
-              reports.totalOutboundCallDuration += item.call_duration
-            }
-            if (item.call_action == "Connected")
-              reports.connected++
-            else if (item.call_action == "Cancelled")
-              reports.cancelled++
-            else if (item.call_action == "Voicemail"){
-              reports.voicemail++
-              reports.voicemailTime[hour]++
-            }else if (item.call_action == "Missed Call"){
-              reports.missedCall++
-              reports.missedCallTime[hour]++
-            }
-            if (item.call_type == "Call")
-              reports.directCall++
-            else if (item.call_type == "RingOut")
-              reports.ringoutCall++
-            else if (item.call_type == "Zoom")
-              reports.zoomCall++
-
-            if (item.call_duration > reports.longestCallDuration)
-              reports.longestCallDuration = item.call_duration
-            var tempTime = item.call_duration - item.call_hold_duration
-            if (tempTime > reports.longestTalkTime)
-              reports.longestTalkTime = tempTime
-
-            if (item.call_hold_duration > reports.longestHoldTime)
-              reports.longestHoldTime = item.call_hold_duration
-
-            //reports.averageHoldTime: 0
-          }
-        }
-        //console.log(reports.averageRespondTime)
-        reports.averageRespondTime /= reports.inbound
-        //console.log(reports)
-        var response = {
-            status: "ok",
-            data: reports
-          }
-        res.send(response)
-      });
-    },
-    */
-    checkSubscription: function(){
-      readAllRegisteredWebHookSubscriptions()
     }
 };
 
@@ -516,38 +365,6 @@ module.exports = Account;
 
 function sortCallTime(a, b){
   return b.calling_timestamp - a.calling_timestamp
-}
-
-function formatDurationTime(dur){
-  dur = Math.floor(dur)
-  if (dur > 86400) {
-    var d = Math.floor(dur / 86400)
-    dur = dur % 86400
-    var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    m = (m>9) ? m : ("0" + m)
-    dur = dur % 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return d + "d " + h + ":" + m + ":" + s
-  }else if (dur >= 3600){
-    var h = Math.floor(dur / 3600)
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    m = (m>9) ? m : ("0" + m)
-    dur = dur % 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return h + ":" + m + ":" + s
-  }else if (dur >= 60){
-    var m = Math.floor(dur / 60)
-    dur %= 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return m + ":" + s
-  }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return dur + " secs"
-  }
 }
 
 function readAnalyticsDb(extensionId, callback){
@@ -580,7 +397,7 @@ function readAnalyticsDb(extensionId, callback){
   })
 }
 
-function updateAnalyticsDb(accountId, extension){
+function updateAnalyticsTable(accountId, extension){
   var tableName = "rt_analytics_" + accountId
 
   var query = 'INSERT INTO ' +tableName+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
@@ -607,12 +424,12 @@ function updateAnalyticsDb(accountId, extension){
       console.error(err.message);
       console.log("QUERY: " + query)
     }else{
-      console.log("updateCallLogDb DONE");
+      console.log("updateCallReportTable DONE");
     }
   })
 }
 
-function updateCallLogDb(accountId, extensionId, call){
+function updateCallReportTable(accountId, extensionId, call){
   var tableName = "rt_call_logs_" + accountId
 
   var query = "INSERT INTO " + tableName
@@ -643,7 +460,11 @@ function updateCallLogDb(accountId, extensionId, call){
       console.error(err.message);
       console.log("QUERY: " + query)
     }else{
-      console.log("updateCallLogDb DONE");
+      console.log("updateCallReportTable DONE");
     }
   })
+}
+
+function sortByAddedDate(a, b){
+  return b.added_timestamp - a.added_timestamp
 }

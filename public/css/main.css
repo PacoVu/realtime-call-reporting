@@ -29,6 +29,10 @@ body {
   font-weight: bold;
   margin-top: 20px;
 }
+.name_list{
+  font-size: 1.3em;
+  padding:5px;
+}
 
 .time {
   color: #0073ae;

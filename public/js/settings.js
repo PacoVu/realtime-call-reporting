@@ -1,20 +1,21 @@
-var canPoll = false
 var agentList = []
-var timeOffset = 0
-
+var newExtensionList = []
+var removeExtensionList = []
 function init(){
   var height = $("#menu_header").height()
+  height += $("#footer").height()
+  var h = $(window).height() - (height + 90);
+  $("#content-list").height(h)
+  //$("#monitored_extensions").height(h)
+
+  window.onresize = function() {
+    var height = $("#menu_header").height()
     height += $("#footer").height()
     var h = $(window).height() - (height + 90);
-    $("#extension_list").height(h)
-
-    window.onresize = function() {
-      var height = $("#menu_header").height()
-      height += $("#footer").height()
-      var h = $(window).height() - (height + 90);
-      $("#extension_list").height(h)
-    }
-    readExtensions()
+    $("#content-list").height(h)
+    //$("#monitored_extensions").height(h)
+  }
+  readExtensions()
 }
 
 function checkSubscription(){
@@ -54,6 +55,7 @@ function searchAgent(){
 function sortByName(a, b){
   return a.name < b.name
 }
+
 function readExtensions(){
   var url = "get_account_extensions"
   var getting = $.get( url );
@@ -77,79 +79,100 @@ function readExtensions(){
       }
       $("#pages").prop("selectedIndex", 0).change()
       for (var ext of res.monitoredExtensions)
-        $('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
+        //$('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
+        $('#monitored_extensions').append(`<div id='"c_${ext.id}"'> <input type='checkbox' id='"${ext.id}"' onclick='selectForRemove("${ext.id}")'></input> ${ext.name}</div>`);
+    }
+  });
+}
+function selectForRemove(id){
+  var i = removeExtensionList.findIndex(o => o === id)
+  if (i >= 0){
+    return removeExtensionList.splice(i, 1)
+  }else
+    removeExtensionList.push(id)
+  //alert(removeExtensionList.length)
+}
+
+function selectExtension(){
+  if (newExtensionList.find(o => o.id === $('#extensions').val()))
+    return
+  var extension = {
+    id: $('#extensions').val(),
+    name: $('#extensions option:selected').text()
+  }
+  //$("#new_extensions").append(`<option selected value='"${$('#extensions').val()}"'> ${$('#extensions option:selected').text()} </option>`);
+  $("#new_extensions").append(`<div>${$('#extensions option:selected').text()}</div>`);
+  newExtensionList.push(extension)
+}
+
+function confirmRemove(){
+  if (removeExtensionList.length == 0){
+    return alert("Please select extensions from the monitored extensions list to remove.")
+  }
+  var r = confirm("Are you sure you want to remove the selected extension(s)?");
+  if (r == true) {
+    removeExtensions()
+  }
+}
+
+function removeExtensions(){
+  var data = {
+    extensions: JSON.stringify(removeExtensionList)
+  }
+  //return alert(data.extensions)
+
+  removeExtensionList = []
+  var url = `remove_account_extensions`
+  var posting = $.post( url, data );
+  posting.done(function( res ) {
+    if (res.status == "ok"){
+      $('#monitored_extensions').empty()
+      for (var ext of res.data)
+        $('#monitored_extensions').append(`<div id='"${ext.id}"' onclick='selectForRemove("${ext.id}")'> <input type='checkbox' id='"ch_${ext.id}"'></input> ${ext.name}</div>`);
+    }else if (res.status == "failed"){
+      alert("Cannot remove. Try again.")
     }
   });
 }
 
-function addExtension(){
-  var extId = $('#extensions').val()
-  var name = $('#extensions option:selected').text();
-  var url = `add_extension?id=${extId}&name=${name}`
-  var getting = $.get( url );
-  getting.done(function( res ) {
+function addExtensions(){
+  if (newExtensionList.length == 0){
+    return alert("Please select extensions from the account extensions list.")
+  }
+  var data = {
+    extensions: JSON.stringify(newExtensionList)
+  }
+  $("#new_extensions").empty()
+  newExtensionList = []
+  var url = `add_account_extensions`
+  var posting = $.post( url, data );
+  posting.done(function( res ) {
     if (res.status == "ok"){
-      var agent = {
-        id: extId,
-        calls: []
-      }
-      agentList.push(agent)
-      var stats = res.data.callStatistics
-      var html = `<div id="extension_${extId}" class='col-sm-3 phone-block'>`
-      // stats block
-      html += `<div id="stats_${extId}" class='col-xs-12'>`
-      html += makeCallsStatisticBlock(name, stats)
-      html += `</div>`
-      // title line
-      html += `<div id="title_${extId}" class='col-xs-12 call-title'>Last call stats</div>`
-      // active call block
-      html += `<div id="active_calls_${extId}" class='col-xs-12 active-calls'>`
-      html += makeNoCallBlock()
-      html += `</div>`
-      $('#extension_list').append(html);
+      $('#monitored_extensions').empty()
+      for (var ext of res.data)
+        $('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
     }else if (res.status == "duplicated"){
       alert("Duplicated")
     }
   });
 }
 
+function resetSubscription(){
+    var url = `reset_account_subscription?delete=` + $("#delete-sub").is(":checked")
+    //return alert(url)
+    var getting = $.get( url );
+    getting.done(function( res ) {
+      if (res.status == "ok"){
+
+      }else{
+        alert("Cannot reset subscription")
+      }
+    });
+}
+
 function logout(){
   window.location.href = "index?n=1"
 }
-
-function formatDurationTime(dur){
-  dur = Math.round(dur)
-  if (dur > 86400) {
-    var d = Math.floor(dur / 86400)
-    dur = dur % 86400
-    var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
-    var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return d + "d " + h + "h " + m + "m " + s + "s"
-  }else if (dur >= 3600){
-    var h = Math.floor(dur / 3600)
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
-    var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return h + "h " + m + "m " + s + "s"
-  }else if (dur >= 60){
-    var m = Math.floor(dur / 60)
-    var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return m + "m " + s + "s"
-  }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return dur + "s"
-  }
-}
-
-
 
 function sortDateAssend(a, b) {
   return a.date - b.date;

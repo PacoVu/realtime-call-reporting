@@ -22,13 +22,10 @@ function init(){
   $("#reporting_list").height(h)
 
   window.onresize = function() {
-      var height = $("#option_bar").height()
-      //height += $("#search_bar").height()
-      //height += $("#voicemail_list_header").height()
-      height += $("#footer").height()
-
-      var h = $(window).height() - (height + 90);
-      $("#reporting_list").height(h)
+    var height = $("#option_bar").height()
+    height += $("#footer").height()
+    var h = $(window).height() - (height + 90);
+    $("#reporting_list").height(h)
   }
   google.charts.load('current', {'packages':['corechart']});
   google.charts.load('current', {'packages':['gauge']});
@@ -90,32 +87,33 @@ function LongestActivityTime(row, data){
   //var item = ["Call duration", data.longestCallDuration/60, "purple"];
   //params.push(item);
 
-  var item = ["Talk time", data.longestTalkDuration/60, "brown"];
+  var item = ["Talk", data.longestTalkDuration/60, "brown"];
   params.push(item);
 
-  item = ["Respond time", data.longestRespondDuration/60, "blue"];
+  item = ["Ring", data.longestRespondDuration/60, "blue"];
   params.push(item);
 
-  item = ["Hold time", data.longestHoldDuration/60, "green"];
+  item = ["Hold", data.longestHoldDuration/60, "green"];
   params.push(item);
   drawBarChart(params, row);
 }
 
 function CallsByDurationGraph(row, data){
     var params = [];
-    var arr = ['Total calls duration (hr)', 'Duration', { role: "style" }];
+    var arr = ['Total duration (hr)', 'Duration', { role: "style" }];
     params.push(arr);
     item = ["Inbound", data.totalInboundCallDuration/3600, "blue"];
+    params.push(item);
+    item = ["Outbound", data.totalOutboundCallDuration/3600, "green"];
     params.push(item);
     item = ["Talk", data.totalInboundTalkDuration/3600, "purple"];
     params.push(item);
     item = ["Hold", data.totalInboundHoldDuration/3600, "red"];
     params.push(item);
-    item = ["Respond", data.totalInboundRespondDuration/3600, "brown"];
+    item = ["Ring", data.totalInboundRespondDuration/3600, "brown"];
     params.push(item);
-    item = [];
-    var item = ["Outbound", data.totalOutboundCallDuration/3600, "green"];
-    params.push(item);
+    //item = [];
+
     drawBarChart(params, row)
 }
 
@@ -230,10 +228,11 @@ function drawScatterChart(params, title, row) {
       title: title,
       //width: "100%",
       height: 300,
-      vAxis: {title: 'Calls', minValue: 0},
-      hAxis: {title: '24-Hour', minValue: 0, maxValue: 23, gridlines: { count: 0 }},
+      vAxis: {title: 'Calls', minValue: 0, gridlines: { count: 23 }},
+      hAxis: {title: '24-Hour', minValue: 0, maxValue: 23},
       viewWindow: {minValue: 0, maxValue: 23},
       //pointShape: 'diamond',
+
       pointShape: { type: 'triangle', rotation: 180 },
       legend: 'none',
     };
@@ -243,7 +242,8 @@ function drawScatterChart(params, title, row) {
     $("#"+row).append(element)
     var chart = new google.visualization.LineChart(element);
     chart.draw(data, options);
-
+    //var chart = new google.visualization.ScatterChart(element);
+    //chart.draw(data, options);
     //var chart = new google.charts.Scatter(element);
     //chart.draw(data, google.charts.Scatter.convertOptions(options));
 }

@@ -90,10 +90,13 @@ app.get('/read_extensions', function (req, res) {
   console.log("read_extensions")
   router.readExtensions(req, res)
 })
-
+app.get('/reset_account_subscription', function (req, res) {
+  console.log("reset_account_subscription")
+  router.resetAccountSubscription(req, res)
+})
 app.get('/add_extension', function (req, res) {
   console.log("add_extension")
-  router.addExtensions(req, res)
+  router.addExtension(req, res)
 })
 app.get('/remove_extension', function (req, res) {
   console.log("add_extension")
@@ -107,6 +110,16 @@ app.get('/poll_calls', function (req, res){
 app.post('/read_calllogs', function (req, res){
   console.log("read_calllogs")
   router.readCallLogs(req, res)
+})
+
+app.post('/add_account_extensions', function (req, res){
+  console.log("add_account_extensions")
+  router.adminAddExtensions(req, res)
+})
+
+app.post('/remove_account_extensions', function (req, res){
+  console.log("add_account_extensions")
+  router.adminRemoveExtensions(req, res)
 })
 
 app.post('/read_reports', function (req, res){

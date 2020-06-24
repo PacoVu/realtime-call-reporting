@@ -38,8 +38,8 @@ function pollResult(){
         var connected = 0
         var hold = 0
         for (var extension of res.data){
-          var agent = agentList.find(o => o.id === extension.id)
-
+          //var agent = agentList.find(o => o.id === extension.id)
+          //alert(JSON.stringify(extension))
           if (extension.activeCalls.length){
             for (var call of extension.activeCalls){
               if (call.status == "NO-CALL"){
@@ -281,6 +281,7 @@ function addExtension(){
       agentList.push(agent)
       var stats = res.data.callStatistics
       var html = `<div id="extension_${extId}" class='col-sm-3 phone-block'>`
+      html += `<img class="corner" src="./img/close.png" onclick="phoneBlock(${extId})"></img>`
       // stats block
       html += `<div id="stats_${extId}" class='col-xs-12'>`
       html += makeCallsStatisticBlock(name, stats)
