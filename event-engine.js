@@ -29,12 +29,12 @@ var engine = Account.prototype = {
               id: ext.extension_id,
               name: ext.name.trim(),
               callStatistics: {
-                totalCallDuration: ext.total_call_duration,
-                totalCallRespondDuration: ext.total_call_respond_duration,
-                inboundCalls: ext.inbound_calls,
-                outboundCalls: ext.outbound_calls,
-                missedCalls: ext.missed_calls,
-                voicemails: ext.voicemails
+                totalCallDuration: parseInt(ext.total_call_duration),
+                totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
+                inboundCalls: parseInt(ext.inbound_calls),
+                outboundCalls: parseInt(ext.outbound_calls),
+                missedCalls: parseInt(ext.missed_calls),
+                voicemails: parseInt(ext.voicemails)
               },
               activeCalls: []
             }
@@ -153,14 +153,14 @@ var engine = Account.prototype = {
                       if (call.status == "HOLD"){
                         var timeNow = new Date(jsonObj.body.eventTime).getTime()
                         timeNow = Math.round((timeNow - call.holdingTimestamp) / 1000)
-                        call.callHoldDurationTotal += parseInt(timeNow)
+                        call.callHoldDurationTotal += timeNow
                       }else{
                         call.connectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                         call.localConnectingTimestamp = new Date().getTime()
                         if (call.direction == "Inbound" && call.status == "RINGING"){
                           var respondTime = (call.connectingTimestamp - call.ringingTimestamp) / 1000
                           call.callRespondDuration = Math.round(respondTime)
-                          extension.callStatistics.totalcallRespondDuration += parseInt(call.callRespondDuration)
+                          extension.callStatistics.totalcallRespondDuration += call.callRespondDuration
                         }
                       }
                       call.status = "CONNECTED"
@@ -263,7 +263,7 @@ var engine = Account.prototype = {
         call.callDuration = Math.round((call.disconnectingTimestamp - call.connectingTimestamp) / 1000)
         //call.callDuration = callDur
         console.log("Total Call Dur: " + extension.callStatistics.totalCallDuration)
-        extension.callStatistics.totalCallDuration += parseInt(call.callDuration)
+        extension.callStatistics.totalCallDuration += call.callDuration
         console.log("AFTER Total Call Dur: " + extension.callStatistics.totalCallDuration)
       }
       if (call.direction == "Inbound"){
@@ -369,7 +369,7 @@ module.exports = Account;
 function sortCallTime(a, b){
   return b.calling_timestamp - a.calling_timestamp
 }
-
+/*
 function readAnalyticsDb(extensionId, callback){
   var tableName = "rt_analytics_" + accountId
   var query = "SELECT * FROM " + tableName + " WHERE extension_id='" + extensionId + "'"
@@ -385,8 +385,8 @@ function readAnalyticsDb(extensionId, callback){
         id: item.extension_id,
         name: item.name,
         callStatistics: {
-          totalCallDuration: item.total_call_duration,
-          totalCallRespondDuration: item.total_call_respond_duration,
+          totalCallDuration: parseInt(item.total_call_duration),
+          totalCallRespondDuration: parseInt(item.total_call_respond_duration),
           inboundCalls: item.inbound_calls,
           outboundCalls: item.outbound_calls,
           missedCalls: item.missed_calls,
@@ -399,13 +399,13 @@ function readAnalyticsDb(extensionId, callback){
       callback("err", null)
   })
 }
-
+*/
 function updateAnalyticsTable(accountId, extension){
   var tableName = "rt_analytics_" + accountId
 
   var query = 'INSERT INTO ' +tableName+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
-  query += " VALUES (" + extension.id
-  query += "," + new Date().getTime()
+  query += " VALUES ('" + extension.id
+  query += "'," + new Date().getTime()
   query += ",'" + extension.name
   query += "'," + extension.callStatistics.totalCallDuration
   query += "," + extension.callStatistics.totalCallRespondDuration
@@ -427,7 +427,7 @@ function updateAnalyticsTable(accountId, extension){
       console.error(err.message);
       console.log("QUERY: " + query)
     }else{
-      console.log("updateCallReportTable DONE");
+      console.log("updateAnalyticsTable DONE");
     }
   })
 }
@@ -456,7 +456,7 @@ function updateCallReportTable(accountId, extensionId, call){
   query += call.callType + "','"
   query += call.callAction + "','"
   query += call.callResult + "')"
-  console.log(query)
+  //console.log(query)
 
   pgdb.insert(query, [], (err, result) =>  {
     if (err){

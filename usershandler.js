@@ -1247,7 +1247,7 @@ async function readAllRegisteredWebHookSubscriptions(p) {
   }
 }
 
-
+/*
 function readAnalyticsDb(extensionId, callback){
   var tableName = "rt_analytics_" + accountId
   var query = "SELECT * FROM " + tableName + " WHERE extension_id='" + extensionId + "'"
@@ -1263,12 +1263,12 @@ function readAnalyticsDb(extensionId, callback){
         id: item.extension_id,
         name: item.name,
         callStatistics: {
-          totalCallDuration: item.total_call_duration,
-          totalCallRespondDuration: item.total_call_respond_duration,
-          inboundCalls: item.inbound_calls,
-          outboundCalls: item.outbound_calls,
-          missedCalls: item.missed_calls,
-          voicemails: item.voicemails
+          totalCallDuration: parseInt(item.total_call_duration),
+          totalCallRespondDuration: parseInt(item.total_call_respond_duration),
+          inboundCalls: parseInt(item.inbound_calls),
+          outboundCalls: parseInt(item.outbound_calls),
+          missedCalls: parseInt(item.missed_calls),
+          voicemails: parseInt(item.voicemails)
         },
         activeCalls: []
       }
@@ -1277,6 +1277,7 @@ function readAnalyticsDb(extensionId, callback){
       callback("err", null)
   })
 }
+*/
 /*
 function updateAnalyticsTable(accountId, extensionList){
   var tableName = "rt_analytics_" + accountId
