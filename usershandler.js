@@ -150,7 +150,8 @@ var engine = User.prototype = {
                 if (this.subscriptionId == record.id){
                   await p.delete('/restapi/v1.0/subscription/' + record.id)
                   console.log("Deleted " + this.subscriptionId)
-                }
+                }else
+                  console.log("sub id " + record.id)
               }
             }
           }
@@ -958,7 +959,9 @@ var engine = User.prototype = {
 
             if (item.call_duration > reports.longestCallDuration)
               reports.longestCallDuration = item.call_duration
-            var tempTime = parseInt(item.call_duration) - parseInt(item.call_hold_duration)
+
+            var tempTime = Math.round((call.disconnectingTimestamp - call.connectingTimestamp) / 1000)
+            var tempTime -= parseInt(item.call_hold_duration)
             if (tempTime > reports.longestTalkDuration)
               reports.longestTalkDuration = tempTime
 
