@@ -619,7 +619,6 @@ var engine = User.prototype = {
           status: "ok",
           data: newList
       }
-      console.log(response)
       res.send(response)
     },
     /*
@@ -959,7 +958,7 @@ var engine = User.prototype = {
 
             if (item.call_duration > reports.longestCallDuration)
               reports.longestCallDuration = item.call_duration
-            var tempTime = item.call_duration - item.call_hold_duration
+            var tempTime = parseInt(item.call_duration) - parseInt(item.call_hold_duration)
             if (tempTime > reports.longestTalkDuration)
               reports.longestTalkDuration = tempTime
 
