@@ -65,8 +65,8 @@ function readCallLogs(){
         var disconnectTime = (call.disconnectTimestamp > 0) ? new Date(call.disconnectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
         var callLength = (call.disconnectTimestamp - call.callTimestamp) / 1000
         var talkDuration = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) : 0
-        
-        var html = `<div id="${call.sessionId}" class="col-xs-12"><div class="col-sm-8"><div class="col-xs-12">`
+
+        var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-8"><div class="col-xs-12">`
         html += `<div class='col-sm-2'><b>${call.name}</b></div>`
         html += `<div class='col-sm-1'>${formatPhoneNumber(call.agentNumber)}</div>`
         html += `<div class='col-sm-1'>${formatPhoneNumber(call.customerNumber)}</div>`

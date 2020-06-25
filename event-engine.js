@@ -122,7 +122,7 @@ var engine = Account.prototype = {
       }
     },
     processNotification: function(jsonObj){
-      //console.log(JSON.stringify(jsonObj))
+      console.log(JSON.stringify(jsonObj))
       console.log("+++++++++++ NEW EVENT ++++++++++++")
       // parse tel notification payload
       if (this.monitoredExtensionList.length){
@@ -144,7 +144,8 @@ var engine = Account.prototype = {
                 console.log("status: " + party.status.code)
                 for (var n=0; n < extension.activeCalls.length; n++){
                   var call = extension.activeCalls[n]
-                  if (call.sessionId == jsonObj.body.sessionId){
+                  // check direction
+                  if (call.partyId == party.id){
                     if (party.status.code == "Proceeding"){
                       call.ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                       call.localRingingTimestamp = new Date().getTime()
@@ -234,7 +235,7 @@ var engine = Account.prototype = {
             console.log("Time: " + jsonObj.body.eventTime)
             console.log("=======")
             for (var extension of this.monitoredExtensionList){
-              var call = extension.activeCalls.find(o => o.sessionId === jsonObj.body.sessionId);
+              var call = extension.activeCalls.find(o => o.partyId === party.id);
               if (call){
                 if (party.status.code == "Disconnected"){
                   if (call.status != "NO-CALL") {
@@ -336,7 +337,7 @@ var engine = Account.prototype = {
       }
       var activeCall = {
                 sessionId: jsonObj.body.sessionId,
-                telephonySessionId: party.id,
+                partyId: party.id,
                 customerNumber: "",
                 agentNumber: "",
                 status: status,
@@ -436,10 +437,11 @@ function updateCallReportTable(accountId, extensionId, call){
   var tableName = "rt_call_logs_" + accountId
 
   var query = "INSERT INTO " + tableName
-  query += " (session_id, extension_id, customer_number, agent_number, direction, calling_timestamp, "
+  query += " (party_id, session_id, extension_id, customer_number, agent_number, direction, calling_timestamp, "
   query += "call_duration, ringing_timestamp, connecting_timestamp, disconnecting_timestamp, holding_timestamp, call_hold_duration, "
   query += "holding_count, call_respond_duration, call_type, call_action, call_result)"
-  query += " VALUES ('" + call.sessionId + "','"
+  query += " VALUES ('" + call.partyId + "','"
+  query += call.sessionId + "','"
   query += extensionId + "','"
   query += call.customerNumber + "','"
   query += call.agentNumber + "','"

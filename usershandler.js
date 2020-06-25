@@ -820,6 +820,7 @@ var engine = User.prototype = {
             var call = {
               id: item.extension_id,
               name: name,
+              partyId: item.party_id,
               sessionId: item.session_id,
               customerNumber: item.customer_number,
               agentNumber: item.agent_number,
@@ -1002,7 +1003,8 @@ var engine = User.prototype = {
       console.log("createCallLogsAnalyticsTable")
       var tableName = "rt_call_logs_" + this.accountId
       var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' ('
-      query += 'session_id VARCHAR(12) PRIMARY KEY'
+      query += 'party_id VARCHAR(48) PRIMARY KEY'
+      query += ', session_id VARCHAR(12)'
       query += ', extension_id VARCHAR(15)'
       query += ', customer_number VARCHAR(15)'
       query += ', agent_number VARCHAR(15)'

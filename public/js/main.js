@@ -88,7 +88,7 @@ function pollResult(){
 
 function makeActiveCallBlock(call){
     var startTime = new Date(call.callingTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
-    var html = `<div id='call_${call.sessionId}' class='col-sm-6'>`
+    var html = `<div id='call_${call.partyId}' class='col-sm-6'>`
     var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
     html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
     if (call.direction == "Inbound"){

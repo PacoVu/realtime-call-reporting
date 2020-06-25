@@ -190,7 +190,8 @@ function addExtensions(){
     if (res.status == "ok"){
       $('#monitored_extensions').empty()
       for (var ext of res.data)
-        $('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
+        //$('#monitored_extensions').append(`<option value='"${ext.id}"'> ${ext.name} </option>`);
+        $('#monitored_extensions').append(`<div id='"${ext.id}"' onclick='selectForRemove("${ext.id}")'> <input type='checkbox' id='"ch_${ext.id}"'></input> ${ext.name}</div>`);
     }else if (res.status == "duplicated"){
       alert("Duplicated")
     }
