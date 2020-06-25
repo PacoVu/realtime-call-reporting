@@ -21,9 +21,9 @@ function init(){
 
 function updateSummary(total, ringing, connected, hold){
   var html = "<img src='img/agent.png'/><b> #: " + total
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/ringing.png'/><b> #: " + ringing + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/connected.png'/><b> #: " + connected + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/hold.png'/><b> #: " + hold + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/RINGING.png'/><b> #: " + ringing + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
 
