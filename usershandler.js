@@ -960,12 +960,15 @@ var engine = User.prototype = {
             if (item.call_duration > reports.longestCallDuration)
               reports.longestCallDuration = item.call_duration
 
-            var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
-            console.log(tempTime)
-            tempTime = Math.round(tempTime) - parseInt(item.call_hold_duration)
-            console.log(tempTime)
-            if (tempTime > reports.longestTalkDuration)
-              reports.longestTalkDuration = tempTime
+            if (item.connecting_timestamp > 0){
+              console.log("Time " + new Date(item.disconnecting_timestamp).toISOString())
+              var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
+              console.log("difference " + tempTime)
+              tempTime = Math.round(tempTime) - parseInt(item.call_hold_duration)
+              console.log("duration: " + tempTime)
+              if (tempTime > reports.longestTalkDuration)
+                reports.longestTalkDuration = tempTime
+            }
 
             if (item.call_hold_duration > reports.longestHoldDuration)
               reports.longestHoldDuration = item.call_hold_duration
