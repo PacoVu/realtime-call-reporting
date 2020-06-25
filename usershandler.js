@@ -919,7 +919,7 @@ var engine = User.prototype = {
               reports.inbound++
               reports.inboundCallTime[hour]++
               if (item.connecting_timestamp > item.ringing_timestamp){
-                var tempTime = (item.connecting_timestamp - item.ringing_timestamp) / 1000
+                var tempTime = (parseInt(item.connecting_timestamp) - parseInt(item.ringing_timestamp)) / 1000
                 if (tempTime < 120){ // cannot be longer than 2 mins???
                   reports.averageRespondTime += tempTime
                   if (tempTime > reports.longestRespondDuration)
@@ -961,11 +961,9 @@ var engine = User.prototype = {
               reports.longestCallDuration = item.call_duration
 
             if (item.connecting_timestamp > 0){
-              console.log("Time " + new Date(parseInt(item.disconnecting_timestamp)).toISOString())
+              console.log("Time " + new Date(item.disconnecting_timestamp).toISOString())
               var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
-              console.log("difference " + tempTime)
               tempTime = Math.round(tempTime/1000) - parseInt(item.call_hold_duration)
-              console.log("duration: " + tempTime)
               if (tempTime > reports.longestTalkDuration)
                 reports.longestTalkDuration = tempTime
             }
