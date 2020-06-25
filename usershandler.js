@@ -1056,7 +1056,7 @@ var engine = User.prototype = {
     },
     updateAccountMonitoredExtensionsTable: function(extensionList){
       var tableName = "rt_analytics_" + this.accountId
-      var query = "INSERT INTO " + tableName + "(extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails) VALUES "
+      var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails) VALUES "
       var lastIndex = extensionList.length - 1
       for (var i=0; i<extensionList.length; i++){
         var ext = extensionList[i]
