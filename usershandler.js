@@ -961,7 +961,7 @@ var engine = User.prototype = {
               reports.longestCallDuration = item.call_duration
 
             if (item.connecting_timestamp > 0){
-              console.log("Time " + new Date(item.disconnecting_timestamp).toISOString())
+              console.log("Time " + new Date(parseInt(item.disconnecting_timestamp).toISOString())
               var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
               console.log("difference " + tempTime)
               tempTime = Math.round(tempTime) - parseInt(item.call_hold_duration)
