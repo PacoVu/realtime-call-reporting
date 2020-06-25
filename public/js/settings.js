@@ -38,10 +38,32 @@ function createAgentList() {
     optionValue = ext.id;
     $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
   }
+  $('#extensions').selectpicker('refresh');
 }
-
+function clearSearch(){
+  //alert("clear")
+  $("#search").val("")
+}
 function searchAgent(){
+  //alert("search")
   var agentName = $("#search").val().toLowerCase()
+  $('#extensions').empty()
+  for (var agent of agentList){
+    if (agent.name.toLowerCase().indexOf(agentName) >= 0){
+      optionText = agent.name;
+      optionValue = agent.id;
+      $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
+    }
+  }
+  $('#extensions').selectpicker('refresh');
+  $('#extensions').selectpicker('selectAll');
+  /*
+  if (agentName.length == 1){
+    $('#extensions').selectpicker('toggle');
+    $("#search").focus()
+  }
+  */
+  /*
   $('#extensions').empty()
   var foundList = []
   for (var agent of agentList){
@@ -51,6 +73,7 @@ function searchAgent(){
       $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
     }
   }
+  */
 }
 function sortByName(a, b){
   return a.name < b.name
@@ -94,6 +117,22 @@ function selectForRemove(id){
 }
 
 function selectExtension(){
+  var extensionIds = $('#extensions').val()
+  var extensionNames = $('#extensions option:selected').toArray().map(item => item.text).join();
+  var extensionNameList = extensionNames.split(",")
+
+  for (var i=0; i<extensionIds.length; i++){
+    if (newExtensionList.find(o => o.id === extensionIds[i]) == undefined){
+      var item = {
+        id: extensionIds[i],
+        name: extensionNameList[i]
+      }
+      $("#new_extensions").append(`<div>${extensionNameList[i]}</div>`);
+      newExtensionList.push(item)
+    }
+  }
+
+  /*
   if (newExtensionList.find(o => o.id === $('#extensions').val()))
     return
   var extension = {
@@ -103,6 +142,7 @@ function selectExtension(){
   //$("#new_extensions").append(`<option selected value='"${$('#extensions').val()}"'> ${$('#extensions option:selected').text()} </option>`);
   $("#new_extensions").append(`<div>${$('#extensions option:selected').text()}</div>`);
   newExtensionList.push(extension)
+  */
 }
 
 function confirmRemove(){

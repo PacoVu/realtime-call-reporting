@@ -48,9 +48,9 @@
       <div class="form-inline">
           <label>Account Extensions&nbsp;</label>
           <label>Pages&nbsp;</label><select id="pages" class="form-control" onchange="createAgentList()"></select>&nbsp;&nbsp;
-          <select id="extensions" onchange="selectExtension()" class="form-control"></select>&nbsp;&nbsp;
+          <select id="extensions" multiple class="form-control selectpicker filter-select"></select>&nbsp;&nbsp;
           <input type="button" id="select_extension" onclick="selectExtension()" class="form-control btn-rc" value="Select"></input>&nbsp;&nbsp;
-          <input type="text" class="form-control search-input" placeholder="Search agent name" value="" id="search" oninput="searchAgent()">
+          <input type="text" class="form-control search-input" placeholder="Search agent name" value="" id="search" onclick="clearSearch()" oninput="searchAgent()">
 
           <!--label>Current Monitored Agents&nbsp;</label-->
           <!--select id="monitored_extensions" class="form-control"></select-->

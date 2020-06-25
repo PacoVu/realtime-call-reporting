@@ -4,26 +4,26 @@ var timeOffset = 0
 
 function init(){
   var height = $("#menu_header").height()
+  height += $("#footer").height()
+  var h = $(window).height() - (height + 90);
+  $("#extension_list").height(h)
+
+  window.onresize = function() {
+    var height = $("#menu_header").height()
     height += $("#footer").height()
     var h = $(window).height() - (height + 90);
     $("#extension_list").height(h)
-
-    window.onresize = function() {
-      var height = $("#menu_header").height()
-      height += $("#footer").height()
-      var h = $(window).height() - (height + 90);
-      $("#extension_list").height(h)
-    }
-    readExtensions()
-    timeOffset = new Date().getTimezoneOffset()*60000;
-    pollResult()
+  }
+  readExtensions()
+  timeOffset = new Date().getTimezoneOffset()*60000;
+  pollResult()
 }
 
 function updateSummary(total, ringing, connected, hold){
-  var html = "<b>Agent #:</b> " + total
-  html += " <b>Ringing #:</b> " + ringing
-  html += " <b>Connected #:</b> " + connected
-  html += " <b>Hold #:</b> " + hold
+  var html = "<img src='img/agent.png'/><b> #: " + total
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/ringing.png'/><b> #: " + ringing + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/connected.png'/><b> #: " + connected + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/hold.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
 
@@ -88,7 +88,7 @@ function pollResult(){
 
 function makeActiveCallBlock(call){
     var startTime = new Date(call.callingTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
-    var html = `<div id='call_${call.sessionId}' class='col-sm-5'>`
+    var html = `<div id='call_${call.sessionId}' class='col-sm-6'>`
     var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
     html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
     if (call.direction == "Inbound"){
@@ -102,7 +102,7 @@ function makeActiveCallBlock(call){
       html += `<div class='col-sm-4 center'>Result: ${call.callResult}</div>`
     }
     html += `</div>`
-    html += `<div class='col-sm-5'>`
+    html += `<div class='col-sm-4'>`
     if (call.status == "RINGING")
       html += `<div class='col-sm-4 center'>Ring Time: ${formatDurationTime(call.callRespondDuration)}</div>`
     else
@@ -123,13 +123,13 @@ function makeActiveCallBlock(call){
 }
 
 function makeNoCallBlock(){
-  var html = `<div class='col-sm-5'>`
+  var html = `<div class='col-sm-6'>`
   html += `<div class='col-sm-4 center'>Call Start: --</div>`
   html += `<div class='col-sm-4 center'>From: --</div>`
   html += `<div class='col-sm-4 center'>To: --</div>`
   //html += `<div class='col-sm-4 center'>Result: --</div>`
   html += `</div>`
-  html += `<div class='col-sm-5'>`
+  html += `<div class='col-sm-4'>`
   html += `<div class='col-sm-4 center'>Respond Time: --</div>`
   html += `<div class='col-sm-4 center'>Talk Time: --</div>`
   html += `<div class='col-sm-4 center'>Hold Time: --</div>`
@@ -165,16 +165,25 @@ function createAgentList() {
   $('#extensions').empty()
   var start = parseInt(ranges[0])
   var end = parseInt(ranges[1])
+  //alert(end)
   for (var i=start; i<end; i++){
     ext = agentList[i]
     optionText = ext.name;
     optionValue = ext.id;
     $('#extensions').append(`<option value="${optionValue}"> ${optionText} </option>`);
   }
+  $('#extensions').selectpicker('refresh');
 }
-function phoneBlock(id){
+function removeMonitoredExtension(id, name){
   //alert(id)
+  $('#extensions').append(`<option value="${id}"> ${name} </option>`);
+  $('#extensions').selectpicker('refresh');
   $("#extension_"+id).empty()
+  var agent = {
+    id: id,
+    name: name
+  }
+  agentList.push(agent)
   var url = `remove_extension?id=${id}`
   var getting = $.get( url );
   getting.done(function( res ) {
@@ -183,7 +192,7 @@ function phoneBlock(id){
       for (var ext of res.data){
         var stats = ext.callStatistics
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-        html += `<img class="corner" src="./img/close.png" onclick="phoneBlock(${ext.id})"></img>`
+        html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
         // stats block
         html += `<div id="stats_${ext.id}" class='col-xs-12'>`
         html += makeCallsStatisticBlock(ext.name, stats)
@@ -216,7 +225,9 @@ function searchAgent(){
   }
 }
 function sortByName(a, b){
-  return a.name < b.name
+  if(a.name < b.name) { return -1; }
+  if(a.name > b.name) { return 1; }
+  return 0;
 }
 function readExtensions(){
   var url = "read_extensions"
@@ -224,26 +235,29 @@ function readExtensions(){
   getting.done(function( res ) {
     if (res.status == "ok"){
       agentList = res.extensions
-      agentList.sort()
-      var perPage = 200
-      var pages = Math.floor(agentList.length / perPage)
-      var start = 0
-      var end = 0
-      for (var p=1; p<=pages; p++){
-        end = (perPage*p)
-        $('#pages').append(`<option value="${start + "-" + end}"> ${p} </option>`);
-        start = end
+      if (agentList.length){
+        agentList.sort(sortByName)
+        var perPage = 200
+        var pages = Math.floor(agentList.length / perPage)
+        var start = 0
+        var end = 0
+        for (var p=1; p<=pages; p++){
+          end = (perPage*p)
+          $('#pages').append(`<option value="${start + "-" + end}"> ${p} </option>`);
+          start = end
+        }
+        var leftOver = agentList.length % perPage
+        end += leftOver
+        if (leftOver > 0){
+          $('#pages').append(`<option value="${start + "-" + end}"> ${pages+1} </option>`);
+        }
+        $("#pages").prop("selectedIndex", 0).change()
       }
-      var leftOver = agentList.length % perPage
-      end += leftOver
-      if (leftOver > 0){
-        $('#pages').append(`<option value="${start + "-" + end}"> ${pages+1} </option>`);
-      }
-      $("#pages").prop("selectedIndex", 0).change()
+      res.data.sort(sortByName)
       for (var ext of res.data){
         var stats = ext.callStatistics
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-        html += `<img class="corner" src="./img/close.png" onclick="phoneBlock(${ext.id})"></img>`
+        html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
         // stats block
         html += `<div id="stats_${ext.id}" class='col-xs-12'>`
         html += makeCallsStatisticBlock(ext.name, stats)
@@ -263,49 +277,53 @@ function readExtensions(){
   });
 }
 
-function addAgents(){
-
-}
-
 function addExtension(){
-  var extId = $('#extensions').val()
-  var name = $('#extensions option:selected').text();
-  var url = `add_extension?id=${extId}&name=${name}`
-  var getting = $.get( url );
-  getting.done(function( res ) {
+  var extensionIds = $('#extensions').val()
+  var extensionNames = $('#extensions option:selected').toArray().map(item => item.text).join();
+  var extensionNameList = extensionNames.split(",")
+  var extensionList = []
+  for (var i=0; i<extensionIds.length; i++){
+    var item = {
+      id: extensionIds[i],
+      name: extensionNameList[i]
+    }
+    extensionList.push(item)
+    // remove from main agentList
+    var n = agentList.findIndex(o => o.id === extensionIds[i])
+    if (n>=0)
+      agentList.splice(n, 1)
+  }
+  for (var ext of extensionIds){
+    $('#extensions').find('[value=' + ext + ']').remove();
+  }
+  $('#extensions').selectpicker('refresh');
+  //$('#extensions').selectpicker('hide');
+  // or disable it
+  //$('#extensions').prop('disabled', false);
+  var url = `add_extensions`
+  var data = {
+    extensions: JSON.stringify(extensionList)
+  }
+  var posting = $.post( url, data );
+  posting.done(function( res ) {
     if (res.status == "ok"){
-      var agent = {
-        id: extId,
-        calls: []
+      for (var ext of res.data){
+        var stats = ext.callStatistics
+        var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
+        html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
+        // stats block
+        html += `<div id="stats_${ext.id}" class='col-xs-12'>`
+        html += makeCallsStatisticBlock(ext.name, stats)
+        html += `</div>`
+        // title line
+        html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
+        // active call block
+        html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
+        html += makeNoCallBlock()
+        html += `</div>`
+        $('#extension_list').append(html);
       }
-      agentList.push(agent)
-      var stats = res.data.callStatistics
-      var html = `<div id="extension_${extId}" class='col-sm-3 phone-block'>`
-      html += `<img class="corner" src="./img/close.png" onclick="phoneBlock(${extId})"></img>`
-      // stats block
-      html += `<div id="stats_${extId}" class='col-xs-12'>`
-      html += makeCallsStatisticBlock(name, stats)
-      html += `</div>`
-      // title line
-      html += `<div id="title_${extId}" class='col-xs-12 call-title'>Last call stats</div>`
-      // active call block
-      html += `<div id="active_calls_${extId}" class='col-xs-12 active-calls'>`
-      html += makeNoCallBlock()
-      html += `</div>`
-      $('#extension_list').append(html);
-      /*
-      var html = `<div id="extension_${extId}" class='col-sm-3 phone-block'>`
-      html += `<div id="stats_"${extId} class='col-xs-12'>`
-      html += makeCallsStatisticBlock(name, stats)
-      html += `</div>`
-      // title line
-      html += `<div id="title_${extId}" class='col-xs-12 call-title'>Last call stats</div>`
-      // active call block
-      html += `</div><div id="active_calls_${extId}" class='col-xs-12 active-calls'>`
-      html += makeNoCallBlock()
-      html += `</div>`
-      $('#extension_list').append(html);
-      */
+
     }else if (res.status == "duplicated"){
       alert("Duplicated")
     }
@@ -348,106 +366,6 @@ function formatDurationTime(dur){
   }
 }
 
-function updateVoicemailAge(){
-  for (var item of voiceMailList){
-    //
-    var now = Date.now();
-    var gap = formatDurationTime((now - item.date)/1000)
-    var td = $("#age_" + item.id)
-    var cell = $("<span>", {
-      text: gap,
-    });
-    td.html(cell)
-    //alert(gap)
-  }
-}
-
-function changeCategory(item){
-  var message = $('#change_category_form');
-  $("#old_category").html(item.categories)
-  BootstrapDialog.show({
-      title: 'Change category',
-      message: $('#change_category_form'),
-      onhide : function(dialog) {
-        $('#hidden-div-category').append(message);
-      },
-      buttons: [{
-        label: 'Close',
-        action: function(dialog) {
-          dialog.close();
-        }
-      }, {
-        label: 'Submit Change',
-        cssClass: 'btn btn-primary',
-        action: function(dialog) {
-          var newCat = $("#new_category").val()
-          if (newCat == ""){
-            $("#new_category").focus()
-            return
-          }
-          if (submitChangeCategory(item, newCat))
-            dialog.close();
-        }
-      }]
-  });
-}
-
-function submitChangeCategory(item, newCat){
-  var url = "updatecategory"
-  var params = {
-    id: item.id,
-    category: newCat
-  }
-  var posting = $.post( url, params );
-  posting.done(function( res ) {
-    if (res.status == "ok"){
-      for (var i=0; i<voiceMailList.length; i++){
-        if (voiceMailList[i].id == item.id){
-          voiceMailList[i].categories = newCat
-          listItems()
-          break
-        }
-      }
-    }else
-      alert(res.message)
-  });
-  return true
-}
-
-function changeSource(item, source){
-  var message = $('#change_source_form');
-  $("#old_source").html(source)
-  BootstrapDialog.show({
-      title: 'Change source',
-      message: $('#change_source_form'),
-      onhide : function(dialog) {
-        $('#hidden-div-change-source').append(message);
-      },
-      buttons: [{
-        label: 'Close',
-        action: function(dialog) {
-          dialog.close();
-        }
-      }, {
-        label: 'Submit Change',
-        cssClass: 'btn btn-primary',
-        action: function(dialog) {
-          var newSource = $("#new_type").val()
-          if (newSource == ""){
-            $("#new_type").focus()
-            return
-          }
-          if (submitChangeSource(item, newSource))
-            dialog.close();
-        }
-      }]
-  });
-}
-
-function createOpenItemLink(item){
-  return "openitem?id=" + item['id'] + "&phoneNumber=" + item['fromNumber']
-}
-
 function formatPhoneNumber(phoneNumberString) {
   var cleaned = ('' + phoneNumberString).replace(/\D/g, '')
   var match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/)
@@ -456,179 +374,6 @@ function formatPhoneNumber(phoneNumberString) {
     return [intlCode, '(', match[2], ') ', match[3], '-', match[4]].join('')
   }
   return phoneNumberString
-}
-
-
-function searchCaseNumber(){
-  var caseId = $("#search").val()
-  if (caseId == ""){
-    $("#search").focus()
-    return
-  }
-  $("#voicemail_items").empty()
-  for (var item of voiceMailList){
-    if (item['id'] == caseId){
-      addRow(item)
-      break
-    }
-  }
-}
-
-function selectForSetProcessed(id){
-  var url = "setprocessed?id=" + id
-  var getting = $.get( url );
-  getting.done(function( res ) {
-    if (res.status == "ok"){
-      $('#' + id).attr('disabled', true)
-      for (var i=0; i<voiceMailList.length; i++){
-        var item = voiceMailList[i]
-        if (item.id == id){
-          voiceMailList[i].processed = true
-          break
-        }
-      }
-    }
-  });
-}
-var deleteArray = []
-function selectionHandler(elm){
-  if ($(elm).prop("checked")){
-    deleteArray = []
-    for (var item of voiceMailList){
-      var eid = "#sel_"+ item.id
-      $(eid).prop('checked', true);
-      deleteArray.push(item.id)
-      $("#delete_item").attr("disabled", false);
-    }
-  }else{
-    for (var item of voiceMailList){
-      var eid = "#sel_"+ item.id
-      $(eid).prop('checked', false);
-    }
-    deleteArray = []
-    $("#delete_item").attr("disabled", true);
-  }
-}
-
-function selectForDelete(id){
-  var eid = "#sel_"+ id
-  if ($(eid).prop("checked")){
-    deleteArray.push(id)
-  }else{
-    for (var i = 0; i < deleteArray.length; i++){
-      if (deleteArray[i] == id){
-        deleteArray.splice(i, 1)
-        break
-      }
-    }
-  }
-  if (deleteArray.length)
-    $("#delete_item").attr("disabled", false);
-  else
-    $("#delete_item").attr("disabled", true);
-}
-
-function confirmDelete(){
-  var r = confirm("Are you sure you want to delete all selected items?");
-  if (r == true) {
-    deleteSelectedItems()
-  }
-}
-
-function deleteSelectedItems(){
-  if (deleteArray.length){
-    var url = "deleteitem?items=" + JSON.stringify(deleteArray)
-    var getting = $.get( url );
-    getting.done(function( res ) {
-      //alert("res" + JSON.stringify(res))
-      if (res.status == "ok"){
-        readVoiceMail()
-      }else
-        alert(res.message)
-    });
-    deleteArray = []
-    $("#delete_item").attr("disabled", true);
-  }
-}
-/*
-function changeOrderedType(){
-  var type = $("#ordered_option").val()
-  if (type == "urgency"){
-    sortedByUrgency = true
-    $("#date_time").text("Date/Time")
-    $("#date_time").attr("disabled", true);
-    $("#urgency").attr("disabled", false);
-    if (assend){
-      $("#urgency").text("Urgency\u2193")
-    }else{
-      $("#urgency").text("Urgency\u2191")
-    }
-  }else{
-    sortedByUrgency = false
-    $("#urgency").text("Urgency")
-    $("#urgency").attr("disabled", true);
-    $("#date_time").attr("disabled", false);
-    if (assend){
-      voiceMailList.sort(sortUrgencyAssend)
-      $("#date_time").text("Date/Time\u2193")
-    }else{
-      voiceMailList.sort(sortUrgencyDessend)
-      $("#date_time").text("Date/Time\u2191")
-    }
-  }
-  sortedContentList()
-  listItems()
-}
-*/
-
-function sortVoicemailUrgency(){
-  //var type = $("#ordered_option").val()
-  //if (type == "date")
-  //    return
-
-  sortedByUrgency = true
-  assend = !assend
-  if (assend){
-    voiceMailList.sort(sortUrgencyAssend)
-    $("#urgency").text("Urgency \u2193")
-  }else{
-    voiceMailList.sort(sortUrgencyDessend)
-    $("#urgency").text("Urgency \u2191")
-  }
-  $("#date_time").text("Date/Time \u2195")
-  listItems()
-}
-
-function sortVoicemailDate(){
-  //var type = $("#ordered_option").val()
-  //if (type == "urgency")
-  //    return
-
-  sortedByUrgency = false
-  assend = !assend
-  if (assend){
-    voiceMailList.sort(sortDateAssend)
-    $("#date_time").text("Date/Time \u2193")
-  }else{
-    voiceMailList.sort(sortDateDessend)
-    $("#date_time").text("Date/Time \u2191")
-  }
-  $("#urgency").text("Urgency \u2195")
-  listItems()
-}
-
-function sortedContentList() {
-  if (sortedByUrgency){
-    if (assend)
-      voiceMailList.sort(sortUrgencyAssend)
-    else
-      voiceMailList.sort(sortUrgencyDessend)
-  }else {
-    if (assend)
-      voiceMailList.sort(sortDateAssend)
-    else
-      voiceMailList.sort(sortDateDessend)
-  }
 }
 
 function sortUrgencyAssend(a, b) {

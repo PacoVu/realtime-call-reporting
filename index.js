@@ -94,9 +94,9 @@ app.get('/reset_account_subscription', function (req, res) {
   console.log("reset_account_subscription")
   router.resetAccountSubscription(req, res)
 })
-app.get('/add_extension', function (req, res) {
-  console.log("add_extension")
-  router.addExtension(req, res)
+app.post('/add_extensions', function (req, res) {
+  console.log("add_extensions")
+  router.addExtensions(req, res)
 })
 app.get('/remove_extension', function (req, res) {
   console.log("add_extension")

@@ -84,9 +84,12 @@ var router = module.exports = {
       }
     }else{
       var index = getUserIndex(req.session.userId)
+      console.log("load main from loadLogin")
       if (index >= 0)
         res.render('main', {
-            userName: users[index].getUserName()
+            userName: users[index].getUserName(),
+            isAdminUser: users[index].isAdminUser,
+            extensions: users[index].extensionList,
           })
       else{
         this.forceLogin(req, res)
@@ -137,10 +140,11 @@ var router = module.exports = {
     console.log("index " + index)
     if (index < 0)
       return this.forceLogin(req, res)
-    console.log("load main?")
+    console.log("load main from loadLogin")
     res.render('main', {
         userName: users[index].getUserName(),
-        isAdminUser: users[index].isAdminUser
+        isAdminUser: users[index].isAdminUser,
+        extensions: users[index].extensionList,
     })
   },
   loadSettingsPage: function(req, res){
@@ -182,11 +186,11 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].readExtensions(res)
   },
-  addExtension: function(req, res){
+  addExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)
     if (index < 0)
       return this.forceLogin(req, res)
-    users[index].addExtension(req, res)
+    users[index].addExtensions(req, res)
   },
   removeExtension: function(req, res){
     var index = getUserIndex(req.session.userId)

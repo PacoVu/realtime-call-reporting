@@ -25,10 +25,9 @@ var engine = Account.prototype = {
         if (result.rows){
           result.rows.sort(sortByAddedDate)
           for (var ext of result.rows){
-            console.log(ext.name)
             var extension = {
               id: ext.extension_id,
-              name: ext.name,
+              name: ext.name.trim(),
               callStatistics: {
                 totalCallDuration: ext.total_call_duration,
                 totalCallRespondDuration: ext.total_call_respond_duration,
@@ -42,10 +41,14 @@ var engine = Account.prototype = {
             thisClass.monitoredExtensionList.push(extension)
           }
         }
+        console.log("Done autosetup")
+        callback(null, "Done engine setup")
+        /*
         thisClass.readAccountExtensionsFromTable((err, result) => {
           console.log("Done autosetup")
           callback(null, "Done engine setup")
         })
+        */
       });
     },
     readAccountExtensionsFromTable: function(callback){
