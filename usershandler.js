@@ -216,7 +216,7 @@ var engine = User.prototype = {
           }
         })
       }else{
-        console.log(this.eventEngine)
+        //console.log(this.eventEngine)
         console.log("Handled in autoStart()")
         //console.log(JSON.stringify(this.eventEngine.monitoredExtensionList))
         //this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
@@ -677,7 +677,7 @@ var engine = User.prototype = {
     },
     */
     subscribeForNotification: async function(){
-      console.log(this.eventFilters)
+      //console.log(this.eventFilters)
       var p = this.platform_engine.getPlatform()
       if (p){
         try {
