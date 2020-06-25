@@ -960,8 +960,10 @@ var engine = User.prototype = {
             if (item.call_duration > reports.longestCallDuration)
               reports.longestCallDuration = item.call_duration
 
-            var tempTime = Math.round((parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)) / 1000)
-            tempTime = tempTime - parseInt(item.call_hold_duration)
+            var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
+            console.log(timeTime)
+            tempTime = Math.round(tempTime) - parseInt(item.call_hold_duration)
+            console.log(timeTime)
             if (tempTime > reports.longestTalkDuration)
               reports.longestTalkDuration = tempTime
 
