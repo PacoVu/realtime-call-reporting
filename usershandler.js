@@ -5,11 +5,8 @@ var router = require('./router');
 const Account = require('./event-engine.js')
 
 require('dotenv').load()
-var fakeExtId = ["12345678", "23144665", "33144665"]
 
-function User(id, index){
-  //just for test
-  this.index = index
+function User(id, mode){
   this.id = id
   this.extensionList = []
   this.subscriptionId = ""
@@ -22,7 +19,7 @@ function User(id, index){
   this.userName = ""
   this.isAdminUser = false
   this.eventEngine = undefined
-  this.platform_engine = new RCPlatform(this)
+  this.platform_engine = new RCPlatform(mode)
 }
 
 var engine = User.prototype = {
@@ -48,9 +45,6 @@ var engine = User.prototype = {
       if (req.query.code) {
         var extensionId = await this.platform_engine.login(req.query.code)
         if (extensionId){
-            // fake id for testing different user agent
-            //if (this.index < 1)
-            //  extensionId = fakeExtId[this.index]
             console.log("extensionId: " + extensionId)
             this.setExtensionId(extensionId)
             req.session.extensionId = extensionId;
@@ -72,7 +66,19 @@ var engine = User.prototype = {
                 var respObj = await resp.json()
 
                 this.accountId = respObj.id
-                this.eventEngine = router.activeAccounts.find(o => o.accountId == respObj.id)
+                /*
+                for (var account of router.activeAccounts){
+                  if (account.accountId == this.accountId){
+                    this.eventEngine = account
+                    break
+                  }else{
+                    console.log(account)
+                  }
+                }
+                */
+                this.eventEngine = router.activeAccounts.find(o => o.accountId.toString() === this.accountId.toString())
+                console.log("must have eventEngine")
+                console.log(this.eventEngine)
                 var thisClass = this
                 thisClass.createAccountExtensionsTable((err, result) =>{
                   console.log("DONE createAccountExtensionsTable")
@@ -88,23 +94,6 @@ var engine = User.prototype = {
                           thisClass.setup()
                           res.send('login success');
                         })
-                        /*
-                          if (thisClass.eventEngine){
-                            // read
-                            // copy account monitor list from engine
-                            Object.assign(thisClass.monitoredExtensionList, thisClass.eventEngine.monitoredExtensionList);
-                            res.send('login success');
-                          }
-                          ///
-                          thisClass.readAccountMonitoredExtensionsTable(async(err, result) => {
-                            if (!err){
-                              await thisClass.setup()
-                              res.send('login success');
-                            }
-                          })
-                          //
-                        })
-                        */
                       })
                     })
                   })
@@ -227,7 +216,7 @@ var engine = User.prototype = {
         }
         this.extensionList = []
         for (var ext of this.eventEngine.monitoredExtensionList){
-            if (this.monitoredExtensionList.find(o => o.id === ext.id) == undefined){
+            if (this.monitoredExtensionList.find(o => o.id.toString() === ext.id.toString()) == undefined){
               var item = {
                 id: ext.id,
                 name: ext.name
@@ -240,71 +229,11 @@ var engine = User.prototype = {
         //console.log(JSON.stringify(this.monitoredExtensionList))
       }
     },
-    /*
-    setup: async function(){
-      if (this.extensionList.length == 0){
-        var nav = await this.readExtensionFromServer("")
-      }
-      if (this.eventEngine == undefined){
-        console.log("this account is not found from engine")
-        var tableName = "rt_analytics_" + this.accountId
-        var query = "SELECT * FROM " + tableName
-        var thisClass = this
-        this.monitoredExtensionList = []
-        this.eventFilters = []
-        pgdb.read(query, (err, result) => {
-          if (err){
-            console.error(err.message);
-            return
-          }
-          if (result.rows){
-            result.rows.sort(sortByAddedDate)
-            for (var ext of result.rows){
-              var extension = {
-                id: ext.extension_id,
-                name: ext.name,
-                callStatistics: {
-                  totalCallDuration: ext.total_call_duration,
-                  totalCallRespondDuration: ext.total_call_respond_duration,
-                  inboundCalls: ext.inbound_calls,
-                  outboundCalls: ext.outbound_calls,
-                  missedCalls: ext.missed_calls,
-                  voicemails: ext.voicemails
-                },
-                activeCalls: []
-              }
-              thisClass.monitoredExtensionList.push(extension)
-              //updateAnalyticsDb(thisClass.accountId, extension)
-              thisClass.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.extension_id}/telephony/sessions`)
-            }
-          }
-
-          if (thisClass.eventFilters.length){
-            thisClass.subscribeForNotification()
-          }
-          updateAccountExtensionsTable(thisClass.accountId, thisClass.extensionList)
-          // care engine and add to router.activeAccounts
-          console.log("account info: " + thisClass.accountId + " / " + thisClass.subscriptionId)
-          thisClass.eventEngine = new Account(thisClass.accountId, thisClass.subscriptionId)
-          thisClass.this.eventEngine.setup()
-          router.activeAccounts.push(thisClass.eventEngine)
-          console.log("FROM User class activeAccounts.length: " + router.activeAccounts.length)
-        });
-      }else{
-        console.log("Handle in autoStart()")
-        //console.log(JSON.stringify(this.eventEngine.monitoredExtensionList))
-        this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
-        this.subscriptionId = this.eventEngine.subscriptionId
-        for (var ext of this.monitoredExtensionList)
-          this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
-      }
-    },
-    */
     readExtensions: function(res){
       console.log("read extensions now")
       this.extensionList = []
       for (var ext of this.eventEngine.monitoredExtensionList){
-          if (this.monitoredExtensionList.find(o => o.id === ext.id) == undefined){
+          if (this.monitoredExtensionList.find(o => o.id.toString() === ext.id.toString()) == undefined){
             var item = {
               id: ext.id,
               name: ext.name
@@ -318,46 +247,12 @@ var engine = User.prototype = {
             data: this.monitoredExtensionList
           }
       res.send(response)
-      /*
-      var thisClass = this
-      this.readAccountMonitoredExtensionsTable((err, result) => {
-        if (thisClass.eventEngine){
-          console.log("this extension can use this engine")
-          var tableName = "rt_monitored_" + this.extensionId
-          var query = "SELECT * FROM " + tableName
-          thisClass.monitoredExtensionList = []
-          pgdb.read(query, (err, result) => {
-            if (err){
-              console.error(err.message);
-            }else{
-              if (result.rows){
-                result.rows.sort(sortByAddedDate)
-                // copy monitored ext from main account.
-                for (var item of result.rows){
-                  for (var ext of thisClass.eventEngine.monitoredExtensionList){
-                    if (item.extension_id == ext.id){
-                      var c = Object()
-                      clone = Object.assign(c, ext)
-                      thisClass.monitoredExtensionList.push(clone)
-                      break
-                    }
-                  }
-                }
-              }
-            }
-            var response = {
-                  status: "ok",
-                  extensions: thisClass.extensionList,
-                  data: thisClass.monitoredExtensionList
-                }
-            res.send(response)
-          });
-        }
-      })
-      */
-      //}
     },
     readUserMonitoredExtensionsTable: function(callback){
+      if (this.eventEngine == undefined){
+        console.log("empty")
+        callback(null, "")
+      }
       var tableName = "rt_monitored_" + this.extensionId
       var query = "SELECT * FROM " + tableName
       var thisClass = this
@@ -371,12 +266,14 @@ var engine = User.prototype = {
             result.rows.sort(sortByAddedDate)
             // copy monitored ext from main account.
             for (var item of result.rows){
-              for (var ext of thisClass.eventEngine.monitoredExtensionList){
-                if (item.extension_id == ext.id){
-                  var clone = Object()
-                  Object.assign(clone, ext)
-                  thisClass.monitoredExtensionList.push(clone)
-                  break
+              if (this.eventEngine != undefined){
+                for (var ext of thisClass.eventEngine.monitoredExtensionList){
+                  if (item.extension_id == ext.id){
+                    var clone = Object()
+                    Object.assign(clone, ext)
+                    thisClass.monitoredExtensionList.push(clone)
+                    break
+                  }
                 }
               }
             }
@@ -524,7 +421,7 @@ var engine = User.prototype = {
       if (this.isAdminUser){
         var extensions = JSON.parse(req.body.extensions)
         for (var extId of extensions){
-          this.eventEngine.monitoredExtensionList.splice(this.eventEngine.monitoredExtensionList.findIndex(o => o.id === extId), 1)
+          this.eventEngine.monitoredExtensionList.splice(this.eventEngine.monitoredExtensionList.findIndex(o => o.id.toString() === extId.toString()), 1)
           var i = this.eventFilters.indexOf(extId)
           if (i >= 0)
             this.eventFilters.splice(i, 1)
@@ -546,7 +443,7 @@ var engine = User.prototype = {
         var newExtensions = []
 
         for (var ext of extensions){
-          if (!this.eventEngine.monitoredExtensionList.find(o => o.id == ext.id)){
+          if (!this.eventEngine.monitoredExtensionList.find(o => o.id.toString() == ext.id.toString())){
             var monitoredExtension = {
               id: ext.id,
               name: ext.name,
@@ -603,9 +500,9 @@ var engine = User.prototype = {
       var extensionList = JSON.parse(req.body.extensions)
       var newList = []
       for (var extension of extensionList){
-        var e = this.monitoredExtensionList.find(o => o.id === extension.id)
+        var e = this.monitoredExtensionList.find(o => o.id.toString() === extension.id.toString())
         if (e == undefined){
-          var ext = this.eventEngine.monitoredExtensionList.find(o => o.id == extension.id)
+          var ext = this.eventEngine.monitoredExtensionList.find(o => o.id.toString() == extension.id.toString())
           if (ext){
             // copy this user to monitoring list
             var e = Object()
@@ -738,7 +635,7 @@ var engine = User.prototype = {
       //console.log(this.extensionId)
       //if (!this.isAdminUser && this.eventEngine){
         for (var ext  of this.monitoredExtensionList){
-          var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id === ext.id)
+          var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id.toString() === ext.id.toString())
           if (activeExt){
             ext = Object.assign(ext, activeExt)
             var currentTimestamp = new Date().getTime()
@@ -812,7 +709,7 @@ var engine = User.prototype = {
           result.rows.sort(sortCallTime)
           var options = { year: 'numeric', month: 'short', day: 'numeric' };
           for (var item of result.rows){
-            var obj = thisClass.monitoredExtensionList.find(o => o.id === item.extension_id)
+            var obj = thisClass.monitoredExtensionList.find(o => o.id.toString() === item.extension_id)
             var name = (obj) ? obj.name : "Unknown"
 
             //var ringTime = (item.ringing_timestamp > 0) ? new Date(item.ringing_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"

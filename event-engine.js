@@ -43,12 +43,6 @@ var engine = Account.prototype = {
         }
         console.log("Done autosetup")
         callback(null, "Done engine setup")
-        /*
-        thisClass.readAccountExtensionsFromTable((err, result) => {
-          console.log("Done autosetup")
-          callback(null, "Done engine setup")
-        })
-        */
       });
     },
     readAccountExtensionsFromTable: function(callback){
@@ -81,43 +75,6 @@ var engine = Account.prototype = {
         if (extension.id == id){
           this.monitoredExtensionList.splice(i, 1)
           break
-        }
-      }
-    },
-    pollActiveCalls: function(res){
-      for (var ext  of this.monitoredExtensionList){
-        var currentTimestamp = new Date().getTime()
-        for (var n=0; n<ext.activeCalls.length; n++){
-          var call = ext.activeCalls[n]
-          call.localCurrentTimestamp = new Date().getTime()
-          if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
-            call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
-          else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
-            call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
-          else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
-            call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
-        }
-      }
-      var response = {
-        status: "ok",
-        update: this.updateData,
-        data: this.monitoredExtensionList
-      }
-      //console.log("POLLING DATA")
-      //console.log(JSON.stringify(this.monitoredExtensionList[0].activeCalls))
-      //console.log("==============")
-      this.updateData = false
-      res.send(response)
-
-      if (!this.updateData){
-        for (var ext  of this.monitoredExtensionList){
-          for (var n=0; n<ext.activeCalls.length; n++){
-            var call = ext.activeCalls[n]
-            if (call.status == "NO-CALL"){
-              ext.activeCalls.splice(n, 1);
-              console.log("remove active call?")
-            }
-          }
         }
       }
     },
@@ -370,37 +327,7 @@ module.exports = Account;
 function sortCallTime(a, b){
   return b.calling_timestamp - a.calling_timestamp
 }
-/*
-function readAnalyticsDb(extensionId, callback){
-  var tableName = "rt_analytics_" + accountId
-  var query = "SELECT * FROM " + tableName + " WHERE extension_id='" + extensionId + "'"
-  pgdb.read(query, (err, result) => {
-    if (err){
-      console.error(err.message);
-      callback("err", null)
-    }
-    var allRows = result.rows
-    if (result.rows){
-      var item = result.rows[0]
-      var extension = {
-        id: item.extension_id,
-        name: item.name,
-        callStatistics: {
-          totalCallDuration: parseInt(item.total_call_duration),
-          totalCallRespondDuration: parseInt(item.total_call_respond_duration),
-          inboundCalls: item.inbound_calls,
-          outboundCalls: item.outbound_calls,
-          missedCalls: item.missed_calls,
-          voicemails: item.voicemails
-        },
-        activeCalls: []
-      }
-      callback("err", extension)
-    }else
-      callback("err", null)
-  })
-}
-*/
+
 function updateAnalyticsTable(accountId, extension){
   var tableName = "rt_analytics_" + accountId
 

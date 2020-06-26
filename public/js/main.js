@@ -143,7 +143,7 @@ function makeNoCallBlock(){
 }
 
 function makeCallsStatisticBlock(name, stats){
-  var html = `<div class='col-sm-4 name'><b>${name}</b></div>`
+  var html = `<div class='col-sm-4'><b>${name}</b></div>`
   html += `<div class='col-sm-2'><img src='img/IN-CALL.png'> ${stats.inboundCalls}</div>`
   html += `<div class='col-sm-2'><img src='img/OUT-CALL.png'> ${stats.outboundCalls}</div>`
   html += `<div class='col-sm-2'><img src='img/Missed.png'> ${stats.missedCalls}</div>`
@@ -175,7 +175,7 @@ function createAgentList() {
   $('#extensions').selectpicker('refresh');
 }
 function removeMonitoredExtension(id, name){
-  //alert(id)
+  alert(id)
   $('#extensions').append(`<option value="${id}"> ${name} </option>`);
   $('#extensions').selectpicker('refresh');
   $("#extension_"+id).empty()
@@ -194,7 +194,7 @@ function removeMonitoredExtension(id, name){
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
         html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
         // stats block
-        html += `<div id="stats_${ext.id}" class='col-xs-12'>`
+        html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
         html += makeCallsStatisticBlock(ext.name, stats)
         html += `</div>`
         // title line
@@ -259,7 +259,7 @@ function readExtensions(){
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
         html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
         // stats block
-        html += `<div id="stats_${ext.id}" class='col-xs-12'>`
+        html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
         html += makeCallsStatisticBlock(ext.name, stats)
         html += `</div>`
         // title line
@@ -312,7 +312,7 @@ function addExtension(){
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
         html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
         // stats block
-        html += `<div id="stats_${ext.id}" class='col-xs-12'>`
+        html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
         html += makeCallsStatisticBlock(ext.name, stats)
         html += `</div>`
         // title line

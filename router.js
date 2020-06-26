@@ -1,6 +1,7 @@
 const User = require('./usershandler.js')
 const Account = require('./event-engine.js')
 const pgdb = require('./db')
+const async = require('async')
 var users = []
 
 function getUserIndex(id){
@@ -37,14 +38,19 @@ function autoStart(){
       createCustomersTable()
     }else{
       if (result.rows){
-        for (var item of result.rows){
-          console.log("account info: " + item.account_id + " / " + item.subscription_id)
-          var account = new Account(item.account_id, item.subscription_id)
-          account.setup((err, result) => {
-            activeAccounts.push(account)
-            console.log("activeAccounts.length: " + activeAccounts.length)
+        async.each(result.rows,
+          function(item, callback){
+            console.log("account info: " + item.account_id + " / " + item.subscription_id)
+            var account = new Account(item.account_id, item.subscription_id)
+            account.setup((err, result) => {
+              activeAccounts.push(account)
+              console.log("activeAccounts.length: " + activeAccounts.length)
+              callback(null, result)
+            })
+          },
+          function (err){
+            console.log("function err")
           })
-        }
       }
     }
   })
@@ -71,8 +77,7 @@ var router = module.exports = {
       var id = new Date().getTime()
       req.session.userId = id;
       console.log("req.session.userId: " + req.session.userId)
-      //var user = new User(id)
-      var user = new User(id, users.length) // just for test multiple agent users
+      var user = new User(id, req.query.env)
       users.push(user)
       var p = user.getPlatform()
       if (p != null){
