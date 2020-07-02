@@ -13,7 +13,7 @@ var engine = Account.prototype = {
       readAccountMonitoredExtensionsFromTable(this.accountId, (err, result) => {
         if ((!err))
           thisClass.monitoredExtensionList = result
-        console.log("Done autosetup")
+        console.log("Done engine setup")
         callback(null, "Done engine setup")
       })
       /*

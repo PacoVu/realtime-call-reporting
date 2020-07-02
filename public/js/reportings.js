@@ -158,19 +158,23 @@ function CallsByDirectionGraph(row, data){
 
 function ActiveCallsByDirection(row, data){
     var params = [];
-    var arr = ['Agents', 'Calls'];
+    var arr = ['Active Calls', 'Calls', { role: "style" } ];
     params.push(arr);
-    var item = ["In Calls", data.inboundActiveCalls];
+    var item = ["In Calls", data.inboundActiveCalls, "blue"];
     params.push(item);
-    item = ["Out Calls", data.outboundActiveCalls];
+    item = ["Out Calls", data.outboundActiveCalls, "green"];
+    params.push(item);
+    var total = (data.outboundActiveCalls + data.inboundActiveCalls)
+    item = ["Total Calls", total, "purple"];
     params.push(item);
     var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
-    item = ["Idle", idle];
+    item = ["Idle", idle, "brown"];
     params.push(item);
 
     //drawGauge(row, params)
     //drawPieChart(row, params)
     drawBarChart(row, params)
+    //drawColumnChart(row, params)
 }
 
 function drawGauge(row, params){
@@ -242,7 +246,7 @@ function drawBarChart(row, params){
       title: params[0][0],
       vAxis: {minValue: 0},
       width: "100%",
-      height: 300,
+      height: 200,
       bar: {groupWidth: "90%"},
       legend: { position: "none" },
     };

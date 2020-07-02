@@ -49,7 +49,7 @@ function autoStart(){
             })
           },
           function (err){
-            console.log("function err")
+            console.log("autoStart completed")
           })
       }
     }
