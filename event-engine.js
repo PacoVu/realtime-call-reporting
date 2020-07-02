@@ -1,18 +1,22 @@
 const pgdb = require('./db')
 
-var fs = require('fs')
-require('dotenv').load()
-
 function Account(accountId, subscriptionId){
   this.accountId = accountId
   this.subscriptionId = subscriptionId
   this.extensionList = []
   this.monitoredExtensionList = []
-  this.updateData = false
 }
 
 var engine = Account.prototype = {
     setup: async function(callback){
+      var thisClass = this
+      readAccountMonitoredExtensionsFromTable(this.accountId, (err, result) => {
+        if ((!err))
+          thisClass.monitoredExtensionList = result
+        console.log("Done autosetup")
+        callback(null, "Done engine setup")
+      })
+      /*
       var tableName = "rt_analytics_" + this.accountId
       var query = "SELECT * FROM " + tableName
       var thisClass = this
@@ -44,7 +48,9 @@ var engine = Account.prototype = {
         console.log("Done autosetup")
         callback(null, "Done engine setup")
       });
+      */
     },
+    /*
     readAccountExtensionsFromTable: function(callback){
       console.log("readAccountExtensionsFromTable")
       var tableName = "rt_extensions_" + this.accountId
@@ -69,7 +75,12 @@ var engine = Account.prototype = {
         }
       });
     },
-    removeAccountMonitoredExtension: function(id){
+    */
+    removeAccountMonitoredExtension: function(extId){
+      var index = this.monitoredExtensionList.findIndex(o => o.id.toString() === extId.toString())
+      if (index >= 0)
+        this.monitoredExtensionList.splice(index, 1)
+      /*
       for (var i=0; i< this.monitoredExtensionList.length; i++){
         var extension = this.monitoredExtensionList[i]
         if (extension.id == id){
@@ -77,33 +88,34 @@ var engine = Account.prototype = {
           break
         }
       }
+      */
     },
     processNotification: function(jsonObj){
-      //console.log(JSON.stringify(jsonObj))
       console.log("+++++++++++ NEW EVENT ++++++++++++")
+      console.log(JSON.stringify(jsonObj))
+      console.log("+++++++++++ ========= ++++++++++++")
       // parse tel notification payload
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
-          var extensionFound = false
           if (party.extensionId){
             var extension = this.monitoredExtensionList.find(o => o.id === party.extensionId);
             if (extension){
-              extensionFound = true
-              console.log("=======")
-              console.log(extension.id + "==" +  party.extensionId)
+              console.log("Extension Id:" + party.extensionId)
               console.log("Code: " + party.status.code)
-              //console.log("Seq: " + jsonObj.body.sequence)
               console.log("Time: " + jsonObj.body.eventTime)
-              console.log("=======")
-
               if (extension.activeCalls.length){
-                console.log("has active call")
-                console.log("status: " + party.status.code)
+                console.log("HAS ACTIVE CALL")
+                console.log("=======")
                 for (var n=0; n < extension.activeCalls.length; n++){
                   var call = extension.activeCalls[n]
-                  // check direction
+                  // match call party ids
                   if (call.partyId == party.id){
-                    if (party.status.code == "Proceeding"){
+                    // check call party call's status
+                    if(party.status.code == "Setup"){
+                      if (call.status == "RINGING") { // most probably a disorder sequence
+                        call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
+                      }
+                    }else if (party.status.code == "Proceeding"){
                       call.ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                       call.localRingingTimestamp = new Date().getTime()
                       call.status = "RINGING"
@@ -124,11 +136,11 @@ var engine = Account.prototype = {
                       call.status = "CONNECTED"
                     }else if(party.status.code == "Disconnected"){
                       if (call.status == "NO-CALL"){
-                        console.log("return from here")
+                        console.log("Return from here")
                         return
                       }
                       call.disconnectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-                      this.handleDisconnection(extension, call, false)
+                      this.handleDisconnection(extension, call)
                     }else if(party.status.code == "Voicemail"){
                       call.status = "VOICEMAIL"
                     }else if(party.status.code == "Hold"){
@@ -143,11 +155,8 @@ var engine = Account.prototype = {
                         call.parkNumber = party.park.id
                       //call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
 
-                    }else if(party.status.code == "Setup"){
-                      if (call.status == "RINGING") { // most probably a disorder sequence
-                        call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-                      }
                     }
+                    // check call direction
                     if (party.direction == "Inbound"){
                       if (party.from)
                         call.customerNumber = party.from.phoneNumber
@@ -161,53 +170,67 @@ var engine = Account.prototype = {
                       call.customerNumber = party.to.phoneNumber
                       call.agentNumber = party.from.phoneNumber
                     }
-                    break
+                    break // party id found => processed and done
                   }
                 }
                 // new call => multiple calls
                 if (n >= extension.activeCalls.length){
                   console.log("another active call")
-                  // IGNORE for now
-                  //var activeCall = this.createNewCallToActiveCall(jsonObj, party)
-                  //extension.activeCalls.push(activeCall)
                   if (extension.activeCalls[0].status == "NO-CALL"){
                     console.log("replace old inactive call")
-                    extension.activeCalls[0] = this.createNewCallToActiveCall(jsonObj, party)
+                    extension.activeCalls[0] = this.createNewActiveCall(jsonObj, party)
+                  }else{
+                    // IGNORE for now
+                    //var activeCall = this.createNewActiveCall(jsonObj, party)
+                    //extension.activeCalls.push(activeCall)
                   }
                   break
                 }
               }else{
-                // add new active call
-                console.log("new call")
-                console.log("Code: " + party.status.code)
-                console.log("Time: " + jsonObj.body.eventTime)
+                console.log("NEW CALL")
                 console.log("=======")
-                var activeCall = this.createNewCallToActiveCall(jsonObj, party)
+                // create new active call obj
+                var activeCall = this.createNewActiveCall(jsonObj, party)
                 extension.activeCalls.push(activeCall)
               }
             }
           }else{ // no extension id from the party
-            console.log("no extension id from the party")
+            console.log("Notification payload has no extension id from party obj")
             console.log("Code: " + party.status.code)
             console.log("Time: " + jsonObj.body.eventTime)
             console.log("=======")
             for (var extension of this.monitoredExtensionList){
-              var call = extension.activeCalls.find(o => o.partyId === party.id);
-              if (call){
-                if (party.status.code == "Disconnected"){
-                  if (call.status != "NO-CALL") {
-                    call.disconnectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-                    this.handleDisconnection(extension, call, true)
-                    break
+              /*  rely on party id? */
+              //var call = extension.activeCalls.find(o => o.partyId === party.id)
+              /*  rely on party session id? */
+              //for (var call of extension.activeCalls){
+              var call = extension.activeCalls.find(o => o.sessionId === jsonObj.body.sessionId)
+                //if (call.sessionId == jsonObj.body.sessionId){
+                if (call != undefined){
+                  if (party.status.code == "Disconnected"){
+                    console.log("Call current STATUS:" + call.status)
+                    if (call.status == "HOLD") {
+                      call.disconnectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
+                      console.log("CUSTOMER hangs up during on hold")
+                      call.callResult = "Customer hanged up during on-hold."
+                      //this.handleDisconnection(extension, call, true)
+                      break
+                      //break
+                    }else if (call.status == "CONNECTED"){
+                      console.log("CUSTOMER hangs up")
+                      call.callResult = "Customer hanged up."
+                      break
+                      //break
+                    }
+                  }else if(party.status.code == "Parked"){
+                    call.status = "PARKED"
+                    if (party.park.id)
+                      call.parkNumber = party.park.id
+                    console.log("Parked: " + jsonObj.body.eventTime)
+                    //call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                   }
-                }else if(party.status.code == "Parked"){
-                  call.status = "PARKED"
-                  if (party.park.id)
-                    call.parkNumber = party.park.id
-                  console.log("Parked: " + jsonObj.body.eventTime)
-                  //call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                 }
-              }
+              //}
             }
           }
         }
@@ -216,13 +239,10 @@ var engine = Account.prototype = {
         console.log("No extension on the monitoring list")
       }
     },
-    handleDisconnection: function(extension, call, isCustomer){
+    handleDisconnection: function(extension, call){
       if (call.connectingTimestamp > 0){
         call.callDuration = Math.round((call.disconnectingTimestamp - call.connectingTimestamp) / 1000)
-        //call.callDuration = callDur
-        console.log("Total Call Dur: " + extension.callStatistics.totalCallDuration)
         extension.callStatistics.totalCallDuration += call.callDuration
-        console.log("AFTER Total Call Dur: " + extension.callStatistics.totalCallDuration)
       }
       if (call.direction == "Inbound"){
         extension.callStatistics.inboundCalls++
@@ -231,10 +251,16 @@ var engine = Account.prototype = {
       }
 
       if (call.status == "CONNECTED"){ // call terminated
+        /*
         if (isCustomer)
           call.callResult = "Customer hanged up."
         else
           call.callResult = "Agent hanged up."
+        */
+        if(call.callResult == ""){
+          console.log("AGENT hangs up")
+          call.callResult = "Agent hanged up."
+        }
         call.callAction = "Connected"
       }else if (call.status == "RINGING"){ // missed call
         console.log("Missed call detected by call status.")
@@ -242,10 +268,16 @@ var engine = Account.prototype = {
         call.callResult = "Missed call."
         call.callAction = "Missed Call"
       }else if (call.status == "HOLD"){ // transfered or disconnected
+        /*
         if (isCustomer){
           console.log("CUSTOMER hangs up during on hold")
           call.callResult = "Customer hanged up during on-hold."
         }else{
+          console.log("AGENT hangs up during on hold")
+          call.callResult = "Agent hanged up during on-hold."
+        }
+        */
+        if(call.callResult == ""){
           console.log("AGENT hangs up during on hold")
           call.callResult = "Agent hanged up during on-hold."
         }
@@ -271,7 +303,7 @@ var engine = Account.prototype = {
       updateCallReportTable(this.accountId, extension.id, call)
       updateAnalyticsTable(this.accountId, extension)
     },
-    createNewCallToActiveCall: function (jsonObj, party) {
+    createNewActiveCall: function (jsonObj, party) {
       // dealing with sequence out of order
       var status = ""
       var startTime = ""
@@ -395,6 +427,39 @@ function updateCallReportTable(accountId, extensionId, call){
       console.log("updateCallReportTable DONE");
     }
   })
+}
+
+function readAccountMonitoredExtensionsFromTable(accountId, callback){
+  var tableName = "rt_analytics_" + accountId
+  var query = "SELECT * FROM " + tableName
+  var monitoredExtensionList = []
+  pgdb.read(query, (err, result) => {
+    if (err){
+      console.error(err.message);
+      callback(err.message, "error")
+    }
+    if (result.rows){
+      result.rows.sort(sortByAddedDate)
+      for (var ext of result.rows){
+        var extension = {
+          id: ext.extension_id,
+          name: ext.name.trim(),
+          callStatistics: {
+            totalCallDuration: parseInt(ext.total_call_duration),
+            totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
+            inboundCalls: parseInt(ext.inbound_calls),
+            outboundCalls: parseInt(ext.outbound_calls),
+            missedCalls: parseInt(ext.missed_calls),
+            voicemails: parseInt(ext.voicemails)
+          },
+          activeCalls: []
+        }
+        monitoredExtensionList.push(extension)
+      }
+    }
+    console.log("Done autosetup")
+    callback(null, monitoredExtensionList)
+  });
 }
 
 function sortByAddedDate(a, b){

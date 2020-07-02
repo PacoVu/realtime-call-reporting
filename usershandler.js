@@ -76,9 +76,8 @@ var engine = User.prototype = {
                   }
                 }
                 */
+                //deleteAllRegisteredWebHookSubscriptions(p)
                 this.eventEngine = router.activeAccounts.find(o => o.accountId.toString() === this.accountId.toString())
-                console.log("must have eventEngine")
-                console.log(this.eventEngine)
                 var thisClass = this
                 thisClass.createAccountExtensionsTable((err, result) =>{
                   console.log("DONE createAccountExtensionsTable")
@@ -282,6 +281,7 @@ var engine = User.prototype = {
         }
       });
     },
+    /*
     readAccountMonitoredExtensionsTable: function(callback){
       console.log("this extension can use this account/engine")
       var tableName = "rt_analytics_" + this.accountId
@@ -305,6 +305,7 @@ var engine = User.prototype = {
         callback(null, "done")
       });
     },
+    */
     getAccountExtensions: async function(res){
       var thisClass = this
       this.readAccountExtensionsFromTable((err, result) => {
@@ -421,7 +422,12 @@ var engine = User.prototype = {
       if (this.isAdminUser){
         var extensions = JSON.parse(req.body.extensions)
         for (var extId of extensions){
-          this.eventEngine.monitoredExtensionList.splice(this.eventEngine.monitoredExtensionList.findIndex(o => o.id.toString() === extId.toString()), 1)
+          this.eventEngine.removeAccountMonitoredExtension(extId)
+          /*
+          var index = this.eventEngine.monitoredExtensionList.findIndex(o => o.id.toString() === extId.toString())
+          if (index >= 0)
+            this.eventEngine.monitoredExtensionList.splice(index, 1)
+          */
           var i = this.eventFilters.indexOf(extId)
           if (i >= 0)
             this.eventFilters.splice(i, 1)
@@ -519,60 +525,6 @@ var engine = User.prototype = {
       }
       res.send(response)
     },
-    /*
-    addExtensions: async function (req, res) {
-      if (this.isAdminUser){
-        var extensionId = req.query.id
-        var extensionName = req.query.name
-        for (var item of this.eventFilters){
-          if (item.indexOf(extensionId) > 0)
-          return res.send({ status: "duplicated"})
-        }
-        this.eventFilters.push(`/restapi/v1.0/account/~/extension/${extensionId}/telephony/sessions`)
-        await this.subscribeForNotification()
-        var monitoredExtension = {
-          id: extensionId,
-          name: extensionName,
-          callStatistics: {
-            totalCallDuration: 0,
-            totalCallRespondDuration: 0,
-            inboundCalls: 0,
-            outboundCalls: 0,
-            missedCalls: 0,
-            voicemails: 0
-          },
-          activeCalls: []
-        }
-        // add this user to monitoring list
-        this.monitoredExtensionList.push(monitoredExtension)
-        // add this user to db
-        updateAnalyticsTable(this.accountId, monitoredExtension)
-        var response = {
-          status: "ok",
-          data: monitoredExtension
-        }
-        res.send(response)
-      }else{
-        if (this.monitoredExtensionList.find(o => o.id === req.query.id))
-          return res.send({ status: "duplicated"})
-        var ext = this.eventEngine.monitoredExtensionList.find(o => o.id === req.query.id)
-
-        if (ext){
-          // add this user to monitoring list
-          var e = Object()
-          var e = Object.assign(e, ext)
-          this.monitoredExtensionList.push(e)
-          // add this user to db
-          updateExtensionMonitoredTable(this.extensionId, req.query.id, req.query.name)
-        }
-        var response = {
-          status: "ok",
-          data: ext
-        }
-        res.send(response)
-      }
-    },
-    */
     subscribeForNotification: async function(){
       //console.log(this.eventFilters)
       var p = this.platform_engine.getPlatform()
@@ -873,6 +825,7 @@ var engine = User.prototype = {
         }
         //console.log(reports.averageRespondTime)
         reports.totalInboundTalkDuration = (reports.totalInboundCallDuration - reports.totalInboundHoldDuration)
+        reports.totalOutboundTalkDuration = (reports.totalOutboundCallDuration - reports.totalOutboundHoldDuration)
         reports.averageRespondDuration /= reports.inbound
         //console.log(reports)
         var response = {
