@@ -160,15 +160,15 @@ function ActiveCallsByDirection(row, data){
     var params = [];
     var arr = ['Agents', 'Calls'];
     params.push(arr);
-    var item = ["Active Inbound Calls", data.inboundActiveCalls];
+    var item = ["In Calls", data.inboundActiveCalls];
     params.push(item);
-    item = ["Active Outbound Calls", data.outboundActiveCalls];
+    item = ["Out Calls", data.outboundActiveCalls];
     params.push(item);
     var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
     item = ["Idle", idle];
     params.push(item);
 
-    //drawGauge(row, params)
+    drawGauge(row, params)
     drawPieChart(row, params)
 }
 
