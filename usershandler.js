@@ -533,8 +533,8 @@ var engine = User.prototype = {
           if (this.subscriptionId == ""){
             let resp = await p.post('/restapi/v1.0/subscription',
                         {
-                            eventFilters: this.eventFilters,
-                            //eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
+                            //eventFilters: this.eventFilters,
+                            eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
                             deliveryMode: {
                                 transportType: 'WebHook',
                                 address: process.env.DELIVERY_MODE_ADDRESS
@@ -551,8 +551,8 @@ var engine = User.prototype = {
           }else{
             let resp = await p.put(`/restapi/v1.0/subscription/${this.subscriptionId}`,
                         {
-                            eventFilters: this.eventFilters,
-                            //eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
+                            //eventFilters: this.eventFilters,
+                            eventFilters: ['/restapi/v1.0/account/~/telephony/sessions'],
                             deliveryMode: {
                                 transportType: 'WebHook',
                                 address: process.env.DELIVERY_MODE_ADDRESS
