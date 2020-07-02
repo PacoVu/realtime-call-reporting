@@ -118,7 +118,7 @@ function CallsByDurationGraph(row, data){
     params.push(item);
     //item = [];
 
-    drawColumnChart(params, row)
+    drawColumnChart(row, params)
 }
 
 function CallByActionGraph(row, data){
