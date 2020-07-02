@@ -95,7 +95,7 @@ function LongestActivityTime(row, data){
 
   item = ["Hold", data.longestHoldDuration/60, "green"];
   params.push(item);
-  drawBarChart(params, row);
+  drawColumnChart(row, params)
 }
 
 function CallsByDurationGraph(row, data){
@@ -118,7 +118,7 @@ function CallsByDurationGraph(row, data){
     params.push(item);
     //item = [];
 
-    drawBarChart(params, row)
+    drawColumnChart(params, row)
 }
 
 function CallByActionGraph(row, data){
@@ -141,7 +141,7 @@ function CallByActionGraph(row, data){
     item = ["Parked", data.parked, "Yellow"];
     params.push(item);
 
-    drawBarChart(params, row);
+    drawColumnChart(row, params)
 }
 
 function CallsByDirectionGraph(row, data){
@@ -153,7 +153,7 @@ function CallsByDirectionGraph(row, data){
 
     item = ["Outbound", data.outbound, "green"];
     params.push(item);
-    drawBarChart(params, row);
+    drawColumnChart(row, params)
 }
 
 function ActiveCallsByDirection(row, data){
@@ -164,12 +164,13 @@ function ActiveCallsByDirection(row, data){
     params.push(item);
     item = ["Out Calls", data.outboundActiveCalls];
     params.push(item);
-    //var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
-    //item = ["Idle", idle];
-    //params.push(item);
+    var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
+    item = ["Idle", idle];
+    params.push(item);
 
     //drawGauge(row, params)
-    drawPieChart(row, params)
+    //drawPieChart(row, params)
+    drawBarChart(row, params)
 }
 
 function drawGauge(row, params){
@@ -199,7 +200,7 @@ function drawPieChart(row, params){
   chart.draw(data, options);
 }
 
-function drawBarChart(params, row){
+function drawColumnChart(row, params){
     var data = google.visualization.arrayToDataTable(params);
     var view = new google.visualization.DataView(data);
     view.setColumns([0, 1,
@@ -223,6 +224,31 @@ function drawBarChart(params, row){
     $(element).addClass("col-sm-3")
     $("#"+row).append(element)
     var chart = new google.visualization.ColumnChart(element);
+    chart.draw(view, options);
+}
+
+function drawBarChart(row, params){
+    var data = google.visualization.arrayToDataTable(params);
+    var view = new google.visualization.DataView(data);
+    view.setColumns([0, 1,
+                    { calc: "stringify",
+                       sourceColumn: 1,
+                       type: "string",
+                       role: "annotation"
+                    },
+                    2]);
+
+    var options = {
+      title: params[0][0],
+      vAxis: {minValue: 0},
+      width: "100%",
+      height: 300,
+      bar: {groupWidth: "90%"},
+      legend: { position: "none" },
+    };
+
+    var element = document.getElementById(row)
+    var chart = new google.visualization.BarChart(element);
     chart.draw(view, options);
 }
 

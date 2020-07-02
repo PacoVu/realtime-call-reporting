@@ -98,9 +98,7 @@ var engine = Account.prototype = {
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
           if (party.extensionId){
-            var sTime = new Date().getTime()
             var extension = this.monitoredExtensionList.find(o => o.id === party.extensionId);
-            console.log(new Date().getTime() - sTime)
             if (extension){
               console.log("Extension Id:" + party.extensionId)
               console.log("Code: " + party.status.code)
