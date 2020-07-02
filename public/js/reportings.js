@@ -169,7 +169,7 @@ function ActiveCallsByDirection(row, data){
     params.push(item);
 
     drawGauge(row, params)
-    drawPieChart(row, params)
+    //drawPieChart(row, params)
 }
 
 function drawGauge(row, params){
