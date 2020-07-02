@@ -148,7 +148,6 @@ app.post('/webhookcallback', function(req, res) {
             var jsonObj = JSON.parse(body)
             var activeAccounts = router.getEngine()
             if (activeAccounts.length){
-              //console.log(activeAccounts[0].subscriptionId + " == " + jsonObj.subscriptionId)
               var account = activeAccounts.find(o => o.subscriptionId === jsonObj.subscriptionId)
               if (account)
                 account.processNotification(jsonObj)
@@ -157,7 +156,8 @@ app.post('/webhookcallback', function(req, res) {
             }else{
               console.log("Export does not work")
             }
-            //router.processNotification(jsonObj)
+            res.statusCode = 200;
+            res.end();
         });
     }
 })

@@ -98,7 +98,9 @@ var engine = Account.prototype = {
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
           if (party.extensionId){
+            var sTime = new Date().getTime()
             var extension = this.monitoredExtensionList.find(o => o.id === party.extensionId);
+            console.log(new Date().getTime() - sTime)
             if (extension){
               console.log("Extension Id:" + party.extensionId)
               console.log("Code: " + party.status.code)
@@ -251,12 +253,6 @@ var engine = Account.prototype = {
       }
 
       if (call.status == "CONNECTED"){ // call terminated
-        /*
-        if (isCustomer)
-          call.callResult = "Customer hanged up."
-        else
-          call.callResult = "Agent hanged up."
-        */
         if(call.callResult == ""){
           console.log("AGENT hangs up")
           call.callResult = "Agent hanged up."
@@ -268,15 +264,6 @@ var engine = Account.prototype = {
         call.callResult = "Missed call."
         call.callAction = "Missed Call"
       }else if (call.status == "HOLD"){ // transfered or disconnected
-        /*
-        if (isCustomer){
-          console.log("CUSTOMER hangs up during on hold")
-          call.callResult = "Customer hanged up during on-hold."
-        }else{
-          console.log("AGENT hangs up during on hold")
-          call.callResult = "Agent hanged up during on-hold."
-        }
-        */
         if(call.callResult == ""){
           console.log("AGENT hangs up during on hold")
           call.callResult = "Agent hanged up during on-hold."
