@@ -92,8 +92,8 @@ var engine = Account.prototype = {
     },
     processNotification: function(jsonObj){
       console.log("+++++++++++ NEW EVENT ++++++++++++")
-      console.log(JSON.stringify(jsonObj))
-      console.log("+++++++++++ ========= ++++++++++++")
+      //console.log(JSON.stringify(jsonObj))
+      //console.log("+++++++++++ ========= ++++++++++++")
       // parse tel notification payload
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
