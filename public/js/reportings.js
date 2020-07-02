@@ -60,7 +60,7 @@ function readReports(){
   posting.done(function( res ) {
     if (res.status == "ok"){
       $("#reporting_list").empty()
-      var html = `<div class='col-xs-12'><div class='col-sm-5'></div><div id='first-row' class='col-sm-2'></div><div class='col-sm-5'></div></div>`
+      var html = `<div class='col-xs-12'><div class='col-sm-4'></div><div id='first-row' class='col-sm-4'></div><div class='col-sm-4'></div></div>`
       html += `<div id='second-row' class='col-xs-12'></div>`
       html += `<div id='third-row' class='col-xs-12'></div>`
       $('#reporting_list').append(html);
@@ -164,12 +164,12 @@ function ActiveCallsByDirection(row, data){
     params.push(item);
     item = ["Out Calls", data.outboundActiveCalls];
     params.push(item);
-    var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
-    item = ["Idle", idle];
-    params.push(item);
+    //var idle = $("#extensions").val().length - (data.outboundActiveCalls + data.inboundActiveCalls)
+    //item = ["Idle", idle];
+    //params.push(item);
 
-    drawGauge(row, params)
-    //drawPieChart(row, params)
+    //drawGauge(row, params)
+    drawPieChart(row, params)
 }
 
 function drawGauge(row, params){
