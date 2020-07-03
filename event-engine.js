@@ -16,79 +16,11 @@ var engine = Account.prototype = {
         console.log("Done engine setup")
         callback(null, "Done engine setup")
       })
-      /*
-      var tableName = "rt_analytics_" + this.accountId
-      var query = "SELECT * FROM " + tableName
-      var thisClass = this
-      this.monitoredExtensionList = []
-      pgdb.read(query, (err, result) => {
-        if (err){
-          console.error(err.message);
-          return
-        }
-        if (result.rows){
-          result.rows.sort(sortByAddedDate)
-          for (var ext of result.rows){
-            var extension = {
-              id: ext.extension_id,
-              name: ext.name.trim(),
-              callStatistics: {
-                totalCallDuration: parseInt(ext.total_call_duration),
-                totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
-                inboundCalls: parseInt(ext.inbound_calls),
-                outboundCalls: parseInt(ext.outbound_calls),
-                missedCalls: parseInt(ext.missed_calls),
-                voicemails: parseInt(ext.voicemails)
-              },
-              activeCalls: []
-            }
-            thisClass.monitoredExtensionList.push(extension)
-          }
-        }
-        console.log("Done autosetup")
-        callback(null, "Done engine setup")
-      });
-      */
     },
-    /*
-    readAccountExtensionsFromTable: function(callback){
-      console.log("readAccountExtensionsFromTable")
-      var tableName = "rt_extensions_" + this.accountId
-      var query = "SELECT * FROM " + tableName
-      var thisClass = this
-      this.extensionList = []
-      pgdb.read(query, (err, result) => {
-        if (err){
-          console.error(err.message);
-          callback (err, "")
-        }
-        if (result.rows){
-          for (var ext of result.rows){
-            var extension = {
-              id: ext.extension_id,
-              name: ext.name
-            }
-            thisClass.extensionList.push(extension)
-          }
-          console.log(thisClass.extensionList.length)
-          callback (null, "Done readAccountExtensionsFromTable")
-        }
-      });
-    },
-    */
     removeAccountMonitoredExtension: function(extId){
       var index = this.monitoredExtensionList.findIndex(o => o.id.toString() === extId.toString())
       if (index >= 0)
         this.monitoredExtensionList.splice(index, 1)
-      /*
-      for (var i=0; i< this.monitoredExtensionList.length; i++){
-        var extension = this.monitoredExtensionList[i]
-        if (extension.id == id){
-          this.monitoredExtensionList.splice(i, 1)
-          break
-        }
-      }
-      */
     },
     processNotification: function(jsonObj){
       console.log("+++++++++++ NEW EVENT ++++++++++++")

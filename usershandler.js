@@ -659,7 +659,6 @@ var engine = User.prototype = {
         }
         if (result.rows){
           result.rows.sort(sortCallTime)
-          var options = { year: 'numeric', month: 'short', day: 'numeric' };
           for (var item of result.rows){
             var obj = thisClass.monitoredExtensionList.find(o => o.id.toString() === item.extension_id)
             var name = (obj) ? obj.name : "Unknown"
@@ -675,13 +674,13 @@ var engine = User.prototype = {
               agentNumber: item.agent_number,
               direction: item.direction,
               //startDate: "", //new Date(item.calling_timestamp - thisClass.localTimeOffset).toLocaleDateString("en-US", options),
-              callTimestamp: item.calling_timestamp, //new Date(item.calling_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],  // DOUBLE DEFAULT 0'
-              callDuration: item.call_duration,
-              ringTimestamp: item.ringing_timestamp, //ringTime,
-              connectTimestamp: item.connecting_timestamp, //connectTime,
-              disconnectTimestamp: item.disconnecting_timestamp, //new Date(item.disconnecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0], // DOUBLE DEFAULT 0'
-              holdTimestamp: item.holding_timestamp,
-              callHoldDuration: item.call_hold_duration,
+              callTimestamp: parseInt(item.calling_timestamp), //new Date(item.calling_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],  // DOUBLE DEFAULT 0'
+              callDuration: parseInt(item.call_duration),
+              ringTimestamp: parseInt(item.ringing_timestamp), //ringTime,
+              connectTimestamp: parseInt(item.connecting_timestamp), //connectTime,
+              disconnectTimestamp: parseInt(item.disconnecting_timestamp), //new Date(item.disconnecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0], // DOUBLE DEFAULT 0'
+              holdTimestamp: parseInt(item.holding_timestamp),
+              callHoldDuration: parseInt(item.call_hold_duration),
               holdingCount: item.holding_count,
               callRespondDuration: item.call_respond_duration,
               callType: item.call_type,
