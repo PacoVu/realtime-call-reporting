@@ -44,10 +44,21 @@ function pollResult(){
             if (agent != undefined){
               for (var call of extension.activeCalls){
                 if (call.status == "NO-CALL"){
+                  var stats = extension.callStatistics
+                  $("#title_"+extension.id).html("Last call stats")
+                  $("#stats_"+extension.id).empty()
+                  var html = makeCallsStatisticBlock(extension.name, stats)
+                  $('#stats_'+extension.id).append(html);
+                  $("#active_calls_"+extension.id).empty()
+                  $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
                   var n = activeAgentList.findIndex(o => o.id === extension.id)
-                  if (n>=0)
-                    activeAgentList.splice(n, 1)
-                  $("#extension_"+extension.id).remove()
+                  if (n>=0){
+                    activeAgentList[n].displayCount--
+                    if (activeAgentList[n].displayCount <= 0){
+                      activeAgentList.splice(n, 1)
+                      $("#extension_"+extension.id).remove()
+                    }
+                  }
                 }else if(call.status == "SETUP"){
                   if ($("#active_calls_"+extension.id).length == 0)
                     $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
@@ -69,7 +80,8 @@ function pollResult(){
                 //alert(JSON.stringify(extension))
                 var agent = {
                   id: extension.id,
-                  name: extension.name
+                  name: extension.name,
+                  displayCount: 3
                 }
                 activeAgentList.push(agent)
                 makeAgentCallBlock(extension)
@@ -274,7 +286,8 @@ function readExtensions(){
           //var stats = ext.callStatistics
           var agent = {
             id: ext.id,
-            name: ext.name
+            name: ext.name,
+            displayCount: 3
           }
           activeAgentList.push(agent)
           makeAgentCallBlock(ext)
