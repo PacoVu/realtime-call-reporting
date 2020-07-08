@@ -1,5 +1,6 @@
 //var canPoll = false
 var agentList = []
+var activeAgentList = []
 var timeOffset = 0
 
 function init(){
@@ -38,50 +39,59 @@ function pollResult(){
         var connected = 0
         var hold = 0
         for (var extension of res.data){
-          //var agent = agentList.find(o => o.id === extension.id)
-          //alert(JSON.stringify(extension))
           if (extension.activeCalls.length){
-            for (var call of extension.activeCalls){
-              if (call.status == "NO-CALL"){
-                var stats = extension.callStatistics
-                $("#title_"+extension.id).html("Last call stats")
-                $("#stats_"+extension.id).empty()
-                var html = makeCallsStatisticBlock(extension.name, stats)
-                $('#stats_'+extension.id).append(html);
-                $("#active_calls_"+extension.id).empty()
-                $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-              }else if(call.status == "SETUP"){
-                if ($("#active_calls_"+extension.id).length == 0)
+            var agent = activeAgentList.find(a => a.id === extension.id)
+            if (agent != undefined){
+              for (var call of extension.activeCalls){
+                if (call.status == "NO-CALL"){
+                  var n = activeAgentList.findIndex(o => o.id === extension.id)
+                  if (n>=0)
+                    activeAgentList.splice(n, 1)
+                  $("#extension_"+extension.id).remove()
+                }else if(call.status == "SETUP"){
+                  if ($("#active_calls_"+extension.id).length == 0)
+                    $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
+                }else{
+                  if(call.status == "RINGING")
+                    ringing++
+                  else if(call.status == "CONNECTED")
+                    connected++
+                  else if(call.status == "HOLD")
+                    hold++
+                  $("#title_"+extension.id).html("Active call stats")
+                  $("#active_calls_"+extension.id).empty()
                   $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-              }else{
-                if(call.status == "RINGING")
-                  ringing++
-                else if(call.status == "CONNECTED")
-                  connected++
-                else if(call.status == "HOLD")
-                  hold++
-                $("#title_"+extension.id).html("Active call stats")
-                $("#active_calls_"+extension.id).empty()
-                $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
+                }
+              }
+            }else{
+              if (extension.activeCalls.length && extension.activeCalls[0].status != "NO-CALL"){
+              // new active agent => add to the dashboard
+                //alert(JSON.stringify(extension))
+                var agent = {
+                  id: extension.id,
+                  name: extension.name
+                }
+                activeAgentList.push(agent)
+                makeAgentCallBlock(extension)
+                //alert(JSON.stringify(activeAgentList))
               }
             }
           }else{
-            var stats = extension.callStatistics
-            $("#stats_"+extension.id).empty()
-            var html = makeCallsStatisticBlock(extension.name, stats)
-            $('#stats_'+extension.id).append(html);
-            //$("#active_calls_"+extension.id).empty()
-            //$("#active_calls_"+extension.id).append(makeNoCallBlock())
+            // need to remove from dashboard
+            var n = activeAgentList.findIndex(o => o.id === extension.id)
+            if (n>=0){
+              activeAgentList.splice(n, 1)
+              $('#extension'+extension.id).remove()
+            }
           }
         }
         updateSummary(res.data.length, ringing, connected, hold)
       }
       window.setTimeout(function(){
-        //if (canPoll)
           pollResult()
       }, 1000)
     }else{
-      alert("er")
+      alert("err")
     }
   });
 }
@@ -175,7 +185,6 @@ function createAgentList() {
   $('#extensions').selectpicker('refresh');
 }
 function removeMonitoredExtension(id, name){
-  alert(id)
   $('#extensions').append(`<option value="${id}"> ${name} </option>`);
   $('#extensions').selectpicker('refresh');
   $("#extension_"+id).empty()
@@ -190,6 +199,10 @@ function removeMonitoredExtension(id, name){
     if (res.status == "ok"){
       $("#extension_list").empty()
       for (var ext of res.data){
+        if (ext.activeCalls.length){
+          makeAgentCallBlock(ext)
+        }
+        /*
         var stats = ext.callStatistics
         var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
         html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
@@ -207,6 +220,7 @@ function removeMonitoredExtension(id, name){
           html += makeNoCallBlock()
         html += `</div>`
         $('#extension_list').append(html);
+        */
       }
     }
   })
@@ -254,27 +268,52 @@ function readExtensions(){
         $("#pages").prop("selectedIndex", 0).change()
       }
       res.data.sort(sortByName)
+      activeAgentList = []
       for (var ext of res.data){
-        var stats = ext.callStatistics
-        var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-        html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
-        // stats block
-        html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
-        html += makeCallsStatisticBlock(ext.name, stats)
-        html += `</div>`
-        // title line
-        html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
-        // active call block
-        html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
-        if (ext.activeCalls.length)
+        if (ext.activeCalls.length && ext.activeCalls[0].status != "NO-CALL"){
+          //var stats = ext.callStatistics
+          var agent = {
+            id: ext.id,
+            name: ext.name
+          }
+          activeAgentList.push(agent)
+          makeAgentCallBlock(ext)
+          /*
+          var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
+          html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
+          // stats block
+          html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
+          html += makeCallsStatisticBlock(ext.name, stats)
+          html += `</div>`
+          // title line
+          html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
+          // active call block
+          html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
           html += makeActiveCallBlock(ext.activeCalls[0])
-        else
-          html += makeNoCallBlock()
-        html += `</div>`
-        $('#extension_list').append(html);
+          html += `</div>`
+          $('#extension_list').append(html);
+          */
+        }
       }
     }
   });
+}
+
+function makeAgentCallBlock(ext){
+  var stats = ext.callStatistics
+  var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
+  //html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
+  // stats block
+  html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
+  html += makeCallsStatisticBlock(ext.name, stats)
+  html += `</div>`
+  // title line
+  html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
+  // active call block
+  html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
+  html += makeActiveCallBlock(ext.activeCalls[0])
+  html += `</div>`
+  $('#extension_list').append(html);
 }
 
 function addExtension(){
@@ -308,20 +347,25 @@ function addExtension(){
   posting.done(function( res ) {
     if (res.status == "ok"){
       for (var ext of res.data){
-        var stats = ext.callStatistics
-        var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-        html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
-        // stats block
-        html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
-        html += makeCallsStatisticBlock(ext.name, stats)
-        html += `</div>`
-        // title line
-        html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
-        // active call block
-        html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
-        html += makeNoCallBlock()
-        html += `</div>`
-        $('#extension_list').append(html);
+        if (ext.activeCalls.length){
+          //var stats = ext.callStatistics
+          makeAgentCallBlock(ext)
+          /*
+          var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
+          html += `<img class="corner" src="./img/close.png" onclick="removeMonitoredExtension(${ext.id}, '${ext.name}')"></img>`
+          // stats block
+          html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
+          html += makeCallsStatisticBlock(ext.name, stats)
+          html += `</div>`
+          // title line
+          html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Last call stats</div>`
+          // active call block
+          html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
+          html += makeActiveCallBlock(ext.activeCalls[0])
+          html += `</div>`
+          $('#extension_list').append(html);
+          */
+        }
       }
 
     }else if (res.status == "duplicated"){

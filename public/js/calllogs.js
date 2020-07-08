@@ -189,21 +189,6 @@ function formatPhoneNumber(phoneNumberString) {
   return phoneNumberString
 }
 
-
-function searchCaseNumber(){
-  var caseId = $("#search").val()
-  if (caseId == ""){
-    $("#search").focus()
-    return
-  }
-  $("#voicemail_items").empty()
-  for (var item of voiceMailList){
-    if (item['id'] == caseId){
-      addRow(item)
-      break
-    }
-  }
-}
 var ascend = false
 function sortListByName(){
   if (ascend)
