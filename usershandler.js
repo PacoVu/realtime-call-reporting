@@ -64,19 +64,7 @@ var engine = User.prototype = {
 
                 var resp = await p.get("/restapi/v1.0/account/~/")
                 var respObj = await resp.json()
-
                 this.accountId = respObj.id
-                /*
-                for (var account of router.activeAccounts){
-                  if (account.accountId == this.accountId){
-                    this.eventEngine = account
-                    break
-                  }else{
-                    console.log(account)
-                  }
-                }
-                */
-                //deleteAllRegisteredWebHookSubscriptions(p)
                 this.eventEngine = router.activeAccounts.find(o => o.accountId.toString() === this.accountId.toString())
                 var thisClass = this
                 thisClass.createAccountExtensionsTable((err, result) =>{
@@ -87,12 +75,12 @@ var engine = User.prototype = {
                       console.log("DONE createCallLogsAnalyticsTable")
                       thisClass.createUserMonitoredExtensionsTable((err, result) =>{
                         console.log("DONE createUserMonitoredExtensionsTable")
-                        thisClass.readUserMonitoredExtensionsTable((err, result) => {
-                          console.log("DONE readUserMonitoredExtensionsTable")
+                        //thisClass.readUserMonitoredExtensionsTable((err, result) => {
+                          //console.log("DONE readUserMonitoredExtensionsTable")
                           console.log("call setup")
                           thisClass.setup()
                           res.send('login success');
-                        })
+                        //})
                       })
                     })
                   })
@@ -208,11 +196,14 @@ var engine = User.prototype = {
         //console.log(this.eventEngine)
         console.log("Handled in autoStart()")
         //console.log(JSON.stringify(this.eventEngine.monitoredExtensionList))
-        //this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
+        this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
+
         this.subscriptionId = this.eventEngine.subscriptionId
+        /*
         for (var ext of this.eventEngine.monitoredExtensionList){
           this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
         }
+        */
         this.extensionList = []
         for (var ext of this.eventEngine.monitoredExtensionList){
             if (this.monitoredExtensionList.find(o => o.id.toString() === ext.id.toString()) == undefined){
@@ -281,31 +272,6 @@ var engine = User.prototype = {
         }
       });
     },
-    /*
-    readAccountMonitoredExtensionsTable: function(callback){
-      console.log("this extension can use this account/engine")
-      var tableName = "rt_analytics_" + this.accountId
-      var query = "SELECT * FROM " + tableName
-      var thisClass = this
-      this.extensionList = []
-      pgdb.read(query, (err, result) => {
-        if (err){
-          console.error(err.message);
-          return
-        }
-        if (result.rows){
-          for (var ext of result.rows){
-            var extension = {
-              id: ext.extension_id,
-              name: ext.name
-            }
-            thisClass.extensionList.push(extension)
-          }
-        }
-        callback(null, "done")
-      });
-    },
-    */
     getAccountExtensions: async function(res){
       var thisClass = this
       this.readAccountExtensionsFromTable((err, result) => {
@@ -323,20 +289,6 @@ var engine = User.prototype = {
           }
         }
       })
-      /*
-      console.log("extensionList length: " + this.eventEngine.extensionList.length)
-      if (this.eventEngine.extensionList.length == 0){
-        var nav = await this.readExtensionFromServer("", res)
-      }else{
-        var response = {
-            status: "ok",
-            extensions: this.eventEngine.extensionList,
-            monitoredExtensions: this.eventEngine.monitoredExtensionList
-        }
-        res.send(response)
-      }
-      */
-
     },
     // only admin can read this
     readAccountExtensionsFromTable: function(callback){
@@ -526,7 +478,6 @@ var engine = User.prototype = {
       res.send(response)
     },
     subscribeForNotification: async function(){
-      //console.log(this.eventFilters)
       var p = this.platform_engine.getPlatform()
       if (p){
         try {
