@@ -81,7 +81,7 @@ function pollResult(){
                 var agent = {
                   id: extension.id,
                   name: extension.name,
-                  displayCount: 3
+                  displayCount: 5
                 }
                 activeAgentList.push(agent)
                 makeAgentCallBlock(extension)
@@ -287,7 +287,7 @@ function readExtensions(){
           var agent = {
             id: ext.id,
             name: ext.name,
-            displayCount: 3
+            displayCount: 5
           }
           activeAgentList.push(agent)
           makeAgentCallBlock(ext)
