@@ -196,8 +196,8 @@ var engine = User.prototype = {
         //console.log(this.eventEngine)
         console.log("Handled in autoStart()")
         //console.log(JSON.stringify(this.eventEngine.monitoredExtensionList))
-        this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
-
+        //this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
+        Object.assign(this.monitoredExtensionList, this.eventEngine.monitoredExtensionList)
         this.subscriptionId = this.eventEngine.subscriptionId
         /*
         for (var ext of this.eventEngine.monitoredExtensionList){
@@ -535,50 +535,28 @@ var engine = User.prototype = {
       }
     },
     pollActiveCalls: function(res){
-      //console.log(this.extensionId)
-      //if (!this.isAdminUser && this.eventEngine){
-        for (var ext  of this.monitoredExtensionList){
-          var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id.toString() === ext.id.toString())
-          if (activeExt){
-            ext = Object.assign(ext, activeExt)
-            var currentTimestamp = new Date().getTime()
-            for (var n=0; n<ext.activeCalls.length; n++){
-              var call = ext.activeCalls[n]
-              call.localCurrentTimestamp = new Date().getTime()
-              if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
-                call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
-              else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
-                call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
-              else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
-                call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
-            }
+      for (var ext  of this.monitoredExtensionList){
+        var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id.toString() === ext.id.toString())
+        if (activeExt){
+          ext = Object.assign(ext, activeExt)
+          var currentTimestamp = new Date().getTime()
+          for (var n=0; n<ext.activeCalls.length; n++){
+            var call = ext.activeCalls[n]
+            call.localCurrentTimestamp = new Date().getTime()
+            if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
+              call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
+            else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
+              call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
+            else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
+              call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
           }
         }
-        var response = {
+      }
+      var response = {
           status: "ok",
-          //update: this.updateData,
           data: this.monitoredExtensionList
-        }
-        //console.log("POLLING DATA")
-        //console.log(JSON.stringify(this.monitoredExtensionList[0].activeCalls))
-        //console.log("==============")
-        //this.updateData = false
-        res.send(response)
-
-        /*if (!this.updateData){
-          for (var ext  of this.monitoredExtensionList){
-            for (var n=0; n<ext.activeCalls.length; n++){
-              var call = ext.activeCalls[n]
-              if (call.status == "NO-CALL"){
-                ext.activeCalls.splice(n, 1);
-                console.log("remove active call from " + this.extensionId)
-              }
-            }
-          }
-        }*/
-      //}else{
-      //  this.eventEngine.pollActiveCalls(res)
-      //}
+      }
+      res.send(response)
     },
     readCallLogs: function(req, res){
       var tableName = "rt_call_logs_" + this.accountId

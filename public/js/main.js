@@ -13,16 +13,18 @@ function init(){
     var h = $(window).height() - (height + 90);
     $("#extension_list").height(h)
   }
-  //readExtensions()
   timeOffset = new Date().getTimezoneOffset()*60000;
   pollResult()
 }
 
 function updateSummary(total, ringing, connected, hold){
-  var html = "<img src='img/agent.png'/><b> #: " + total
+  var html = "<span class='title center'>Summary: </span><img src='img/agent.png'/><b> #: " + total
+  var idle = total - (ringing + connected + hold)
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/NO-CALL.png'/><b> #: " + idle + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/RINGING.png'/><b> #: " + ringing + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
+  //html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/PARKED.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
 
@@ -73,8 +75,7 @@ function pollResult(){
               }
             }else{
               if (extension.activeCalls.length && extension.activeCalls[0].status != "NO-CALL"){
-              // new active agent => add to the dashboard
-                //alert(JSON.stringify(extension))
+                // new active agent => add to the dashboard
                 var agent = {
                   id: extension.id,
                   name: extension.name,
@@ -84,15 +85,6 @@ function pollResult(){
                 makeAgentCallBlock(extension)
               }
             }
-          }else{
-            // need to remove from dashboard
-            /*
-            var n = activeAgentList.findIndex(o => o.id === extension.id)
-            if (n>=0){
-              activeAgentList.splice(n, 1)
-              $('#extension'+extension.id).remove()
-            }
-            */
           }
         }
         updateSummary(res.data.length, ringing, connected, hold)
