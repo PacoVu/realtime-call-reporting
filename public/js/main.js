@@ -24,7 +24,7 @@ function updateSummary(total, ringing, connected, hold, voicemail){
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/RINGING.png'/><b> #: " + ringing + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/VOICEMAIL.png'/><b> #: " + voice + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/VOICEMAIL.png'/><b> #: " + voicemail + "</b>"
   //html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/PARKED.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
