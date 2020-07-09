@@ -17,13 +17,14 @@ function init(){
   pollResult()
 }
 
-function updateSummary(total, ringing, connected, hold){
+function updateSummary(total, ringing, connected, hold, voicemail){
   var html = "<span class='title center'>Summary: </span><img src='img/agent.png'/><b> #: " + total
-  var idle = total - (ringing + connected + hold)
+  var idle = total - (ringing + connected + hold + voicemail)
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/NO-CALL.png'/><b> #: " + idle + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/RINGING.png'/><b> #: " + ringing + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
+  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/VOICEMAIL.png'/><b> #: " + voice + "</b>"
   //html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/PARKED.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
@@ -37,6 +38,7 @@ function pollResult(){
         var ringing = 0
         var connected = 0
         var hold = 0
+        var voicemail = 0
         for (var extension of res.data){
           if (extension.activeCalls.length){
             var agent = activeAgentList.find(a => a.id === extension.id)
@@ -68,6 +70,8 @@ function pollResult(){
                     connected++
                   else if(call.status == "HOLD")
                     hold++
+                  else if(call.status == "VOICEMAIL")
+                    voicemail++
                   $("#title_"+extension.id).html("Active call stats")
                   $("#active_calls_"+extension.id).empty()
                   $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
@@ -87,7 +91,7 @@ function pollResult(){
             }
           }
         }
-        updateSummary(res.data.length, ringing, connected, hold)
+        updateSummary(res.data.length, ringing, connected, hold, voicemail)
       }
       window.setTimeout(function(){
           pollResult()
