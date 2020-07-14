@@ -1,9 +1,7 @@
 const pgdb = require('./db')
 
-function Account(accountId, subscriptionId){
+function Account(accountId){
   this.accountId = accountId
-  this.subscriptionId = subscriptionId
-  this.extensionList = []
   this.monitoredExtensionList = []
 }
 
@@ -236,7 +234,6 @@ var engine = Account.prototype = {
       }
       call.status = "NO-CALL"
       updateCallReportTable(this.accountId, extension.id, call)
-      updateAnalyticsTable(this.accountId, extension)
     },
     createNewActiveCall: function (jsonObj, party) {
       // dealing with sequence out of order
@@ -252,7 +249,7 @@ var engine = Account.prototype = {
       if (party.uiCallInfo){
         if (party.uiCallInfo.primary.type  == "QueueName")
           type = "Queue"
-        
+
       }else{
         type = jsonObj.body.origin.type
       }
@@ -334,38 +331,6 @@ function sortCallTime(a, b){
   return b.calling_timestamp - a.calling_timestamp
 }
 
-function updateAnalyticsTable(accountId, extension){
-  var tableName = "rt_analytics_" + accountId
-
-  var query = 'INSERT INTO ' +tableName+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
-  query += " VALUES ('" + extension.id
-  query += "'," + new Date().getTime()
-  query += ",'" + extension.name
-  query += "'," + extension.callStatistics.totalCallDuration
-  query += "," + extension.callStatistics.totalCallRespondDuration
-  query += "," + extension.callStatistics.inboundCalls
-  query += "," + extension.callStatistics.outboundCalls
-  query += "," + extension.callStatistics.missedCalls
-  query += "," + extension.callStatistics.voicemails + ")"
-
-  query += ' ON CONFLICT (extension_id) DO UPDATE SET total_call_duration= ' + extension.callStatistics.totalCallDuration + ","
-  query += ' total_call_respond_duration= ' + extension.callStatistics.totalCallRespondDuration + ", "
-  query += ' inbound_calls= ' + extension.callStatistics.inboundCalls + ", "
-  query += ' outbound_calls= ' + extension.callStatistics.outboundCalls + ", "
-  query += ' missed_calls= ' + extension.callStatistics.missedCalls + ", "
-  query += ' voicemails= ' + extension.callStatistics.voicemails
-  //query += ' WHERE extension_id="'+extension.id+'"'
-
-  pgdb.insert(query, [], (err, result) =>  {
-    if (err){
-      console.error(err.message);
-      console.log("QUERY: " + query)
-    }else{
-      console.log("updateAnalyticsTable DONE");
-    }
-  })
-}
-
 function updateCallReportTable(accountId, extensionId, call){
   var tableName = "rt_call_logs_" + accountId
 
@@ -391,7 +356,6 @@ function updateCallReportTable(accountId, extensionId, call){
   query += call.callType + "','"
   query += call.callAction + "','"
   query += call.callResult + "')"
-  //console.log(query)
 
   pgdb.insert(query, [], (err, result) =>  {
     if (err){
@@ -404,7 +368,7 @@ function updateCallReportTable(accountId, extensionId, call){
 }
 
 function readAccountMonitoredExtensionsFromTable(accountId, callback){
-  var tableName = "rt_analytics_" + accountId
+  var tableName = "rt_report_agents_" + accountId
   var query = "SELECT * FROM " + tableName
   var monitoredExtensionList = []
   pgdb.read(query, (err, result) => {
@@ -418,14 +382,6 @@ function readAccountMonitoredExtensionsFromTable(accountId, callback){
         var extension = {
           id: ext.extension_id,
           name: ext.name.trim(),
-          callStatistics: {
-            totalCallDuration: parseInt(ext.total_call_duration),
-            totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
-            inboundCalls: parseInt(ext.inbound_calls),
-            outboundCalls: parseInt(ext.outbound_calls),
-            missedCalls: parseInt(ext.missed_calls),
-            voicemails: parseInt(ext.voicemails)
-          },
           activeCalls: []
         }
         monitoredExtensionList.push(extension)
