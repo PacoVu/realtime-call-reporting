@@ -252,7 +252,7 @@ var engine = Account.prototype = {
       if (party.uiCallInfo){
         if (party.uiCallInfo.primary.type  == "QueueName")
           type = "Queue"
-        //uiCallInfo.primary.value //"Van Phong Vu"}
+        
       }else{
         type = jsonObj.body.origin.type
       }
