@@ -199,11 +199,12 @@ var engine = User.prototype = {
         //this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
         Object.assign(this.monitoredExtensionList, this.eventEngine.monitoredExtensionList)
         this.subscriptionId = this.eventEngine.subscriptionId
-        /*
+
         for (var ext of this.eventEngine.monitoredExtensionList){
-          this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
+          //this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
+          console.log("moitored id: " + ext.id)
         }
-        */
+
         this.extensionList = []
         for (var ext of this.eventEngine.monitoredExtensionList){
             if (this.monitoredExtensionList.find(o => o.id.toString() === ext.id.toString()) == undefined){
@@ -318,7 +319,7 @@ var engine = User.prototype = {
       var endpoint = "/restapi/v1.0/account/~/extension"
       var params = {
         status: ["Enabled"],
-        type: ["User"],
+        //type: ["User"],
         perPage: 1000
       }
       if (uri != ""){

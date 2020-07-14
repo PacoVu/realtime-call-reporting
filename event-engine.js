@@ -24,8 +24,8 @@ var engine = Account.prototype = {
     },
     processNotification: function(jsonObj){
       console.log("+++++++++++ NEW EVENT ++++++++++++")
-      //console.log(JSON.stringify(jsonObj))
-      //console.log("+++++++++++ ========= ++++++++++++")
+      console.log(JSON.stringify(jsonObj))
+      console.log("+++++++++++ ========= ++++++++++++")
       // parse tel notification payload
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
@@ -51,6 +51,20 @@ var engine = Account.prototype = {
                       call.ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                       call.localRingingTimestamp = new Date().getTime()
                       call.status = "RINGING"
+                      // check call direction
+                      if (party.direction == "Inbound"){
+                        if (party.from)
+                          call.customerNumber = party.from.phoneNumber
+                        else
+                          call.customerNumber = "Anonymous"
+                        if (party.to)
+                          call.agentNumber = party.to.phoneNumber
+                        else
+                          call.agentNumber = "Unknown"
+                      }else{ // outbound
+                        call.customerNumber = party.to.phoneNumber
+                        call.agentNumber = party.from.phoneNumber
+                      }
                     }else if(party.status.code == "Answered"){
                       if (call.status == "HOLD"){
                         var timeNow = new Date(jsonObj.body.eventTime).getTime()
@@ -67,6 +81,7 @@ var engine = Account.prototype = {
                       }
                       call.status = "CONNECTED"
                     }else if(party.status.code == "Disconnected"){
+                      console.log("Disconnected with ext id")
                       if (call.status == "NO-CALL"){
                         console.log("Return from here")
                         return
@@ -88,6 +103,7 @@ var engine = Account.prototype = {
                       //call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
 
                     }
+                    /*
                     // check call direction
                     if (party.direction == "Inbound"){
                       if (party.from)
@@ -102,6 +118,7 @@ var engine = Account.prototype = {
                       call.customerNumber = party.to.phoneNumber
                       call.agentNumber = party.from.phoneNumber
                     }
+                    */
                     break // party id found => processed and done
                   }
                 }
@@ -127,6 +144,7 @@ var engine = Account.prototype = {
               }
             }
           }else{ // no extension id from the party
+            //console.log(JSON.stringify(jsonObj))
             console.log("Notification payload has no extension id from party obj")
             console.log("Code: " + party.status.code)
             console.log("Time: " + jsonObj.body.eventTime)
@@ -228,12 +246,51 @@ var engine = Account.prototype = {
       var connectingTimestamp= 0
       var disconnectingTimestamp= 0
       var callingTimestamp = 0
+      var customerNumber = ""
+      var agentNumber = ""
+      var type = ""
+      if (party.uiCallInfo){
+        if (party.uiCallInfo.primary.type  == "QueueName")
+          type = "Queue"
+        //uiCallInfo.primary.value //"Van Phong Vu"}
+      }else{
+        type = jsonObj.body.origin.type
+      }
       if (party.status.code == "Setup"){
         callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
         status = "SETUP"
       }else if (party.status.code == "Proceeding"){
+        // This happens when there is an incoming call to a call queue
+        // Have to deal with call from call queue, where queue members do not receive own setup event!!!
+
+        // set callingTimestamp with ringingTimestamp for just in case there is no callingTimestamp
+        callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
+        // search for callingTimestamp from an active call with the same sessionId
+        for (var ext of this.monitoredExtensionList){
+          for (call of ext.activeCalls){
+            if (jsonObj.body.sessionId == call.sessionId){
+              callingTimestamp = call.callingTimestamp
+              break
+              break
+            }
+          }
+        }
         ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
         status = "RINGING"
+        // check call direction
+        if (party.direction == "Inbound"){
+          if (party.from)
+            customerNumber = party.from.phoneNumber
+          else
+            customerNumber = "Anonymous"
+          if (party.to)
+            agentNumber = party.to.phoneNumber
+          else
+            agentNumber = "Unknown"
+        }else{ // outbound
+          customerNumber = party.to.phoneNumber
+          agentNumber = party.from.phoneNumber
+        }
       }else if (party.status.code == "Answered"){
         connectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
         status = "CONNECTED"
@@ -244,8 +301,8 @@ var engine = Account.prototype = {
       var activeCall = {
                 sessionId: jsonObj.body.sessionId,
                 partyId: party.id,
-                customerNumber: "",
-                agentNumber: "",
+                customerNumber: customerNumber,
+                agentNumber: agentNumber,
                 status: status,
                 direction: party.direction,
                 callingTimestamp: callingTimestamp,
@@ -258,7 +315,7 @@ var engine = Account.prototype = {
                 callHoldDurationTotal: 0,
                 holdingCount: 0,
                 callRespondDuration: 0,
-                callType: jsonObj.body.origin.type,
+                callType: type,
                 callAction: "",
                 callResult: "",
                 talkDuration: 0,
