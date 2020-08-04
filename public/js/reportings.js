@@ -30,7 +30,7 @@ function init(){
   google.charts.load('current', {'packages':['corechart']});
   google.charts.load('current', {'packages':['gauge']});
   google.charts.setOnLoadCallback(readReports);
-  var offset = new Date().getTimezoneOffset()/60;
+  var offset = (new Date().getTimezoneOffset()/60) * (-1)
   $('#timezone option[value='+offset+']').prop('selected', true);
 }
 
@@ -48,8 +48,8 @@ function readReports(){
   }
   var timeOffset = parseInt($("#timezone").val())
   timeOffset *= 3600000
-  var from = new Date($("#fromdatepicker").val() + "T00:00:00.000Z").getTime() + timeOffset
-  var to = new Date($("#todatepicker").val() + "T23:59:59.999Z").getTime() + timeOffset
+  var from = new Date($("#fromdatepicker").val() + "T00:00:00.000Z").getTime() - timeOffset
+  var to = new Date($("#todatepicker").val() + "T23:59:59.999Z").getTime() - timeOffset
   var data = {
     time_offset: timeOffset,
     from: from,
