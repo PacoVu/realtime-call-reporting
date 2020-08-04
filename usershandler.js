@@ -692,7 +692,8 @@ var engine = User.prototype = {
           //result.sort(sortCallTime)
           var timeOffset = req.body.time_offset
           for (var item of result.rows){
-            var d = new Date(item.calling_timestamp - timeOffset)
+            var localTime  = parseInt(item.calling_timestamp) + parseInt(timeOffset)
+            var d = new Date(localTime)
             var hour = parseInt(d.toISOString().substring(11, 13))
             if (item.direction == "Inbound"){
               reports.inbound++
