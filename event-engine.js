@@ -54,16 +54,16 @@ var engine = Account.prototype = {
                       // check call direction
                       if (party.direction == "Inbound"){
                         if (party.from)
-                          call.customerNumber = party.from.phoneNumber
+                          call.customerNumber = formatPhoneNumber(party.from.phoneNumber)
                         else
                           call.customerNumber = "Anonymous"
                         if (party.to)
-                          call.agentNumber = party.to.phoneNumber
+                          call.agentNumber = formatPhoneNumber(party.to.phoneNumber)
                         else
                           call.agentNumber = "Unknown"
                       }else{ // outbound
-                        call.customerNumber = party.to.phoneNumber
-                        call.agentNumber = party.from.phoneNumber
+                        call.customerNumber = formatPhoneNumber(party.to.phoneNumber)
+                        call.agentNumber = formatPhoneNumber(party.from.phoneNumber)
                       }
                     }else if(party.status.code == "Answered"){
                       if (call.status == "HOLD"){
