@@ -108,7 +108,7 @@ app.get('/poll_calls', function (req, res){
 })
 
 app.post('/read_calllogs', function (req, res){
-  console.log("read_calllogs")
+  //console.log("read_calllogs")
   router.readCallLogs(req, res)
 })
 

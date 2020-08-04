@@ -1,164 +1,113 @@
-var activeAgentList = []
-var timeOffset = 0
-
+var agentList = []
+var callLogList = []
 function init(){
+  $( "#fromdatepicker" ).datepicker({ dateFormat: "yy-mm-dd"});
+  $( "#todatepicker" ).datepicker({dateFormat: "yy-mm-dd"});
+  var pastMonth = new Date();
+  var day = pastMonth.getDate()  - 1
+  var month = pastMonth.getMonth()
+  var year = pastMonth.getFullYear()
+  if (month < 0){
+    month = 11
+    year -= 1
+  }
+  $( "#fromdatepicker" ).datepicker('setDate', new Date(year, month, day));
+  $( "#todatepicker" ).datepicker('setDate', new Date());
   var height = $("#menu_header").height()
   height += $("#footer").height()
-  var h = $(window).height() - (height + 90);
-  $("#extension_list").height(h)
+  var h = $(window).height() - (height + 110);
+  $("#call_logs_list").height(h)
 
   window.onresize = function() {
     var height = $("#menu_header").height()
     height += $("#footer").height()
-    var h = $(window).height() - (height + 90);
-    $("#extension_list").height(h)
+
+    var h = $(window).height() - (height + 110);
+    $("#call_logs_list").height(h)
   }
-  timeOffset = new Date().getTimezoneOffset()*60000;
-  pollResult()
+  var offset = new Date().getTimezoneOffset()/60;
+  $('#timezone option[value='+offset+']').prop('selected', true);
+  readCallLogs()
 }
 
-function updateSummary(total, ringing, connected, hold, voicemail){
-  var html = "<span class='title center'>Summary: </span><img src='img/agent.png'/><b> #: " + total
-  var idle = total - (ringing + connected + hold + voicemail)
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/NO-CALL.png'/><b> #: " + idle + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/RINGING.png'/><b> #: " + ringing + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
-  html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/VOICEMAIL.png'/><b> #: " + voicemail + "</b>"
-  //html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/PARKED.png'/><b> #: " + hold + "</b>"
-  $("#summary").html(html)
-}
-
-function pollResult(){
-  var url = "poll_calls"
-  var getting = $.get( url );
-  getting.done(function( res ) {
-    if (res.status == "ok") {
-      if (res.data.length){
-        var ringing = 0
-        var connected = 0
-        var hold = 0
-        var voicemail = 0
-        for (var extension of res.data){
-          if (extension.activeCalls.length){
-            var agent = activeAgentList.find(a => a.id === extension.id)
-            if (agent != undefined){
-              for (var call of extension.activeCalls){
-                if (call.status == "NO-CALL"){
-                  var stats = extension.callStatistics
-                  $("#title_"+extension.id).html("Latest call stats")
-                  $("#stats_"+extension.id).empty()
-                  var html = makeCallsStatisticBlock(extension.name, stats)
-                  $('#stats_'+extension.id).append(html);
-                  $("#active_calls_"+extension.id).empty()
-                  $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-                  var n = activeAgentList.findIndex(o => o.id === extension.id)
-                  if (n>=0){
-                    activeAgentList[n].displayCount--
-                    if (activeAgentList[n].displayCount <= 0){
-                      activeAgentList.splice(n, 1)
-                      $("#extension_"+extension.id).remove()
-                    }
-                  }
-                }else if(call.status == "SETUP"){
-                  if ($("#active_calls_"+extension.id).length == 0)
-                    $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-                }else{
-                  if(call.status == "RINGING")
-                    ringing++
-                  else if(call.status == "CONNECTED")
-                    connected++
-                  else if(call.status == "HOLD")
-                    hold++
-                  else if(call.status == "VOICEMAIL")
-                    voicemail++
-                  $("#title_"+extension.id).html("Active call stats")
-                  $("#active_calls_"+extension.id).empty()
-                  $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-                }
-              }
-            }else{
-              if (extension.activeCalls.length && extension.activeCalls[0].status != "NO-CALL"){
-                // new active agent => add to the dashboard
-                var agent = {
-                  id: extension.id,
-                  name: extension.name,
-                  displayCount: 5
-                }
-                activeAgentList.push(agent)
-                makeAgentCallBlock(extension)
-              }
-            }
-          }
-        }
-        updateSummary(res.data.length, ringing, connected, hold, voicemail)
+function readCallLogs(){
+  var url = 'read_calllogs'
+  var exts = $("#extensions").val()
+  var extensionIds = ""
+  if (exts.length){
+    extensionIds = `( ${$("#extensions").val().join(",")} )`
+  }
+  var timeOffset = parseInt($("#timezone").val())
+  timeOffset *= 3600000
+  var from = new Date($("#fromdatepicker").val() + "T00:00:00.000Z").getTime() + timeOffset
+  var to = new Date($("#todatepicker").val() + "T23:59:59.999Z").getTime() + timeOffset
+  var data = {
+    from: from,
+    to: to,
+    direction: $("#direction").val(),
+    call_type: $("#call_type").val(),
+    action: $("#action").val(),
+    extensions: extensionIds
+  }
+  var posting = $.post( url, data );
+  posting.done(function( res ) {
+    if (res.status == "ok"){
+      //callLogList = res.data
+      callLogList = []
+      for (var call of res.data){
+        call['callLength'] = (call.disconnectTimestamp - call.callTimestamp) / 1000
+        call['connectDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) : 0
+        call['talkDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) - call.callHoldDuration : 0
+        if (call.direction == "Inbound" && call.connectTimestamp > 0)
+          call['ringDuration'] = (call.connectTimestamp - call.ringTimestamp) / 1000
+        else
+          call['ringDuration'] = 0
+        callLogList.push(call)
       }
+      renderCallLogs()
       window.setTimeout(function(){
-          pollResult()
-      }, 1000)
-    }else{
-      alert("err")
+        readCallLogs()
+      }, 10000)
     }
   });
 }
+function renderCallLogs(){
+  $("#call_logs_list").empty()
+  var options = { year: 'numeric', month: 'short', day: 'numeric' };
+  var timeOffset = parseInt($("#timezone").val())
+  timeOffset *= 3600000
+  for (var call of callLogList){
+    var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var connectTime = (call.connectTimestamp > 0) ? new Date(call.connectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var startDate = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toLocaleDateString("en-US", options) : "-"
+    var startTime = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var disconnectTime = (call.disconnectTimestamp > 0) ? new Date(call.disconnectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
 
-function makeActiveCallBlock(call){
-    var startTime = new Date(call.callingTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
-    var html = `<div id='call_${call.partyId}' class='col-sm-6'>`
-    var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
-    html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
-    if (call.direction == "Inbound"){
-      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.customerNumber)}</div>`
-      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.agentNumber)} </div>`
-    }else{
-      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.agentNumber)}</div>`
-      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.customerNumber)} </div>`
-    }
-    if (call.status == "NO-CALL"){
-      html += `<div class='col-sm-4 center'>Result: ${call.callResult}</div>`
-    }
-    html += `</div>`
-    html += `<div class='col-sm-4'>`
-    if (call.status == "RINGING")
-      html += `<div class='col-sm-4 center'>Ring Time: ${formatDurationTime(call.callRespondDuration)}</div>`
-    else
-      html += `<div class='col-sm-4 center'>Respond Time: ${formatDurationTime(call.callRespondDuration)}</div>`
-    html += `<div class='col-sm-4 center'>Talk Time: ${formatDurationTime(call.talkDuration)}</div>`
-    html += `<div class='col-sm-4 center'>Hold Time: ${formatDurationTime(call.callHoldDuration)}</div>`
-    if (call.status == "NO-CALL"){
-      if (call.parkNumber != "")
-        html += `<div class='col-sm-4 center'>Park #: ${call.parkNumber}</div>`
-    }
-    html += `</div>`
+    var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-7"><div class="col-xs-12">`
+    html += `<div class='col-sm-1'><b>${call.name}</b></div>`
+    html += `<div class='col-sm-2'>${formatPhoneNumber(call.agentNumber)}</div>`
+    html += `<div class='col-sm-2'>${formatPhoneNumber(call.customerNumber)}</div>`
+    html += `<div class='col-sm-1'>${call.direction}</div>`
+    html += `<div class='col-sm-1'>${call.callType}</div>`
+    html += `<div class='col-sm-1'>${call.callAction}</div>`
+    html += `<div class='col-sm-1'>${startDate}</div>`
+    html += `<div class='col-sm-1'>${startTime}</div>`
+    html += `<div class='col-sm-1'>${ringTime}</div>`
+    html += `<div class='col-sm-1'>${connectTime}</div>`
+    html += `</div></div>`
 
-    html += `<div class='col-sm-2'>`
-    html += `<img src='img/${call.status}.png'>`
-    html += `</div>`
-
-    return html
-}
-
-function makeCallsStatisticBlock(name, stats){
-  var html = `<div class='col-sm-4'><b>${name}</b></div>`
-  html += `<div class='col-sm-2'><img src='img/IN-CALL.png'> ${stats.inboundCalls}</div>`
-  html += `<div class='col-sm-2'><img src='img/OUT-CALL.png'> ${stats.outboundCalls}</div>`
-  html += `<div class='col-sm-2'><img src='img/Missed.png'> ${stats.missedCalls}</div>`
-  html += `<div class='col-sm-2'><img src='img/VM.png'> ${stats.voicemails}</div>`
-  return html
-}
-function makeAgentCallBlock(ext){
-  var stats = ext.callStatistics
-  var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-  html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
-  html += makeCallsStatisticBlock(ext.name, stats)
-  html += `</div>`
-  // title line
-  html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Active call stats</div>`
-  // active call block
-  html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
-  html += makeActiveCallBlock(ext.activeCalls[0])
-  html += `</div>`
-  $('#extension_list').append(html);
+    html += `<div class="col-sm-5"><div class="col-xs-12">`
+    html += `<div class='col-sm-1'>${disconnectTime}</div>`
+    html += `<div class='col-sm-2'>${formatDurationTime(call.callLength)}</div>`
+    html += `<div class='col-sm-2'>${formatDurationTime(call.connectDuration)}</div>`
+    html += `<div class='col-sm-2'>${formatDurationTime(call.talkDuration)}</div>`
+    html += `<div class='col-sm-1'>${formatDurationTime(call.callHoldDuration)}</div>`
+    html += `<div class='col-sm-1'>${call.holdingCount}</div>`
+    html += `<div class='col-sm-1'>${formatDurationTime(call.ringDuration)}</div>`
+    html += `<div class='col-sm-2'>${call.callResult}</div>`
+    html += `</div></div></div>`
+    $("#call_logs_list").append(html)
+  }
 }
 
 function logout(){
@@ -171,28 +120,21 @@ function formatDurationTime(dur){
     var d = Math.floor(dur / 86400)
     dur = dur % 86400
     var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return d + "d " + h + "h " + m + "m " + s + "s"
   }else if (dur >= 3600){
     var h = Math.floor(dur / 3600)
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return h + "h " + m + "m " + s + "s"
   }else if (dur >= 60){
     var m = Math.floor(dur / 60)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return m + "m " + s + "s"
   }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
     return dur + "s"
   }
 }
@@ -205,4 +147,146 @@ function formatPhoneNumber(phoneNumberString) {
     return [intlCode, '(', match[2], ') ', match[3], '-', match[4]].join('')
   }
   return phoneNumberString
+}
+
+var ascend = false
+function sortListByName(){
+  if (ascend)
+    callLogList.sort(sortByNameAscend)
+  else
+    callLogList.sort(sortByNameDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByCallStart(){
+  if (ascend)
+    callLogList.sort(sortCallStartAscend)
+  else
+    callLogList.sort(sortCallStartDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByCallLength(){
+  //call-length
+  if (ascend)
+    callLogList.sort(sortCallLengthAscend)
+  else
+    callLogList.sort(sortCallLengthDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByConnectDuration(){
+  //connect
+  if (ascend)
+    callLogList.sort(sortConnectDurationAscend)
+  else
+    callLogList.sort(sortConnectDurationDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByTalkDuration(){
+  //talk
+  if (ascend)
+    callLogList.sort(sortTalkDurationAscend)
+  else
+    callLogList.sort(sortTalkDurationDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByHoldDuration(){
+  //hold
+  if (ascend)
+    callLogList.sort(sortHoldDurationAscend)
+  else
+    callLogList.sort(sortHoldDurationDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByHoldCount(){
+  //hold-count
+  if (ascend)
+    callLogList.sort(sortHoldCountAscend)
+  else
+    callLogList.sort(sortHoldCountDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+function sortListByRespondDuration(){
+  //ring
+  if (ascend)
+    callLogList.sort(sortRespondDurationAscend)
+  else
+    callLogList.sort(sortRespondDurationDescend)
+  ascend = !ascend
+  renderCallLogs()
+}
+
+function sortCallStartAscend(a, b) {
+  return a.callTimestamp - b.callTimestamp
+}
+
+function sortCallLengthAscend(a, b) {
+  return a.callLength - b.callLength
+}
+
+function sortConnectDurationAscend(a, b) {
+  return a.connectDuration - b.connectDuration
+}
+
+function sortTalkDurationAscend(a, b) {
+  return a.talkDuration - b.talkDuration;
+}
+
+function sortHoldDurationAscend(a, b) {
+  return a.callHoldDuration - b.callHoldDuration;
+}
+
+function sortHoldCountAscend(a, b) {
+  return a.holdingCount - b.holdingCount;
+}
+
+function sortRespondDurationAscend(a, b) {
+  return a.callRespondDuration - b.callRespondDuration;
+}
+
+// Descend
+function sortCallStartDescend(a, b) {
+  return b.callTimestamp - a.callTimestamp
+}
+
+function sortCallLengthDescend(a, b) {
+  return b.callLength - a.callLength
+}
+
+function sortConnectDurationDescend(a, b) {
+  return b.connectDuration - a.connectDuration
+}
+
+function sortTalkDurationDescend(a, b) {
+  return b.talkDuration - a.talkDuration;
+}
+
+function sortHoldDurationDescend(a, b) {
+  return b.callHoldDuration - a.callHoldDuration;
+}
+
+function sortHoldCountDescend(a, b) {
+  return b.holdingCount - a.holdingCount;
+}
+
+function sortRespondDurationDescend(a, b) {
+  return b.callRespondDuration - a.callRespondDuration;
+}
+
+
+function sortByNameAscend(a, b){
+  if(a.name < b.name) { return -1; }
+  if(a.name > b.name) { return 1; }
+  return 0;
+}
+
+function sortByNameDescend(a, b){
+  if(a.name > b.name) { return -1; }
+  if(a.name < b.name) { return 1; }
+  return 0;
 }

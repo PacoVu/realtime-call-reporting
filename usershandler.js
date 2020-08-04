@@ -12,8 +12,6 @@ function User(id, mode){
   this.subscriptionId = ""
   this.eventFilters = []
   this.monitoredExtensionList = []
-  this.updateData = false
-  this.localTimeOffset = (3600 * 7 * 1000)
   this.accountId = 0
   this.extensionId = 0
   this.userName = ""
@@ -135,6 +133,8 @@ var engine = User.prototype = {
           }else{
             updateCustomersTable(this.accountId, this.subscriptionId)
           }
+          console.log(this.eventFilters)
+          console.log(this.subscriptionId)
           console.log("after sub")
           res.send({status:"ok"})
         }catch (e){
@@ -147,7 +147,7 @@ var engine = User.prototype = {
     },
     readAccountExtensionsFromTable: function(callback){
       console.log("readAccountExtensionsFromTable")
-      var tableName = "rt_extensions_" + this.accountId
+      var tableName = "call_report_extensions_" + this.accountId
       var query = "SELECT * FROM " + tableName
       var thisClass = this
       this.extensionList = []
@@ -172,7 +172,6 @@ var engine = User.prototype = {
     setup: function(){
       if (this.eventEngine == undefined){
         console.log("this account is not found from engine")
-        //updateAccountExtensionsTable(this.accountId, this.extensionList)
         console.log("account info: " + this.accountId + " / " + this.subscriptionId)
         this.eventEngine = new Account(this.accountId, this.subscriptionId)
         this.eventEngine.setup((err, result) => {
@@ -181,7 +180,7 @@ var engine = User.prototype = {
           for (var ext of this.eventEngine.monitoredExtensionList){
             this.eventFilters.push(`/restapi/v1.0/account/~/extension/${ext.id}/telephony/sessions`)
           }
-          Object.assign(this.extensionList, this.eventEngine.monitoredExtensionList);
+          this.extensionList = this.eventEngine.monitoredExtensionList
           if (this.eventFilters.length){
             this.subscribeForNotification()
           }
@@ -190,8 +189,7 @@ var engine = User.prototype = {
         //console.log(this.eventEngine)
         console.log("Handled in autoStart()")
         //console.log(JSON.stringify(this.eventEngine.monitoredExtensionList))
-        //this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
-        Object.assign(this.monitoredExtensionList, this.eventEngine.monitoredExtensionList)
+        this.monitoredExtensionList = this.eventEngine.monitoredExtensionList
         this.subscriptionId = this.eventEngine.subscriptionId
 
         for (var ext of this.eventEngine.monitoredExtensionList){
@@ -238,7 +236,7 @@ var engine = User.prototype = {
         console.log("empty")
         callback(null, "")
       }
-      var tableName = "rt_monitored_" + this.extensionId
+      var tableName = "call_report_monitored_" + this.extensionId
       var query = "SELECT * FROM " + tableName
       var thisClass = this
       this.monitoredExtensionList = []
@@ -288,7 +286,7 @@ var engine = User.prototype = {
     // only admin can read this
     readAccountExtensionsFromTable: function(callback){
       console.log("readAccountExtensionsFromTable")
-      var tableName = "rt_extensions_" + this.accountId
+      var tableName = "call_report_extensions_" + this.accountId
       var query = "SELECT * FROM " + tableName
       var extensionList = []
       pgdb.read(query, (err, result) => {
@@ -313,7 +311,7 @@ var engine = User.prototype = {
       var endpoint = "/restapi/v1.0/account/~/extension"
       var params = {
         status: ["Enabled"],
-        //type: ["User"],
+        type: ["User"],
         perPage: 1000
       }
       if (uri != ""){
@@ -476,59 +474,24 @@ var engine = User.prototype = {
       var p = this.platform_engine.getPlatform()
       if (p){
         try {
-          if (this.subscriptionId == ""){
-            let resp = await p.post('/restapi/v1.0/subscription',
-                        {
-                            eventFilters: this.eventFilters,
-                            deliveryMode: {
-                                transportType: 'WebHook',
-                                address: process.env.DELIVERY_MODE_ADDRESS
-                            },
-                            expiresIn: 31536000
-                        })
-            var jsonObj = await resp.json()
-            console.log("Ready to receive telephonyStatus notification via WebHook.")
-            this.subscriptionId = jsonObj.id
-            this.eventEngine.subscriptionId = this.subscriptionId
-            console.log("Create subscription")
-            console.log(this.subscriptionId)
-            updateCustomersTable(this.accountId, this.subscriptionId)
-          }else{
-            let resp = await p.put(`/restapi/v1.0/subscription/${this.subscriptionId}`,
-                        {
-                            eventFilters: this.eventFilters,
-                            deliveryMode: {
-                                transportType: 'WebHook',
-                                address: process.env.DELIVERY_MODE_ADDRESS
-                            },
-                            expiresIn: 31536000
-                        })
-            var jsonObj = await resp.json()
-            this.subscriptionId = jsonObj.id
-            this.eventEngine.subscriptionId = this.subscriptionId
-            console.log("Update subscription")
-            console.log(this.subscriptionId)
+          var params = {
+                eventFilters: ["/restapi/v1.0/account/~/telephony/sessions"],
+                deliveryMode: {
+                    transportType: 'WebHook',
+                    address: process.env.DELIVERY_MODE_ADDRESS
+                },
+                expiresIn: 31536000
           }
-
-          //updateCustomersTable(this.accountId, this.subscriptionId)
-          // add a new engine
-          if (this.eventEngine){
-            console.log("Update eventEngine")
-            this.eventEngine.subscriptionId = this.subscriptionId
-          }else{
-            console.log("create and add a new eventEngine")
-            this.eventEngine = new Account(this.accountId, this.subscriptionId)
-            this.eventEngine.setup()
-            this.eventEngine.monitoredExtensionList = this.monitoredExtensionList
-            router.activeAccounts.push(this.eventEngine)
-          }
+          let resp = await p.post('/restapi/v1.0/subscription', params)
+          var jsonObj = await resp.json()
+          updateCustomersTable(this.accountId, this.subscriptionId)
         }catch (e) {
           console.error(e);
         }
       }
     },
     readCallLogs: function(req, res){
-      var tableName = "rt_call_logs_" + this.accountId
+      var tableName = "call_report_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
       if (req.body.extensions != ""){
@@ -560,9 +523,6 @@ var engine = User.prototype = {
           for (var item of result.rows){
             var obj = thisClass.monitoredExtensionList.find(o => o.id.toString() === item.extension_id)
             var name = (obj) ? obj.name : "Unknown"
-
-            //var ringTime = (item.ringing_timestamp > 0) ? new Date(item.ringing_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-            //var connectTime = (item.connecting_timestamp> 0) ? new Date(item.connecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
             var call = {
               id: item.extension_id,
               name: name,
@@ -571,16 +531,13 @@ var engine = User.prototype = {
               customerNumber: item.customer_number,
               agentNumber: item.agent_number,
               direction: item.direction,
-              //startDate: "", //new Date(item.calling_timestamp - thisClass.localTimeOffset).toLocaleDateString("en-US", options),
-              callTimestamp: parseInt(item.calling_timestamp), //new Date(item.calling_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],  // DOUBLE DEFAULT 0'
-              callDuration: parseInt(item.call_duration),
-              ringTimestamp: parseInt(item.ringing_timestamp), //ringTime,
-              connectTimestamp: parseInt(item.connecting_timestamp), //connectTime,
-              disconnectTimestamp: parseInt(item.disconnecting_timestamp), //new Date(item.disconnecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0], // DOUBLE DEFAULT 0'
+              callTimestamp: parseInt(item.calling_timestamp),
+              ringTimestamp: parseInt(item.ringing_timestamp),
+              connectTimestamp: parseInt(item.connecting_timestamp),
+              disconnectTimestamp: parseInt(item.disconnecting_timestamp),
               holdTimestamp: parseInt(item.holding_timestamp),
               callHoldDuration: parseInt(item.call_hold_duration),
               holdingCount: item.holding_count,
-              callRespondDuration: item.call_respond_duration,
               callType: item.call_type,
               callAction: item.call_action,
               callResult: item.call_result
@@ -598,7 +555,7 @@ var engine = User.prototype = {
     },
     createCallLogsAnalyticsTable: function(callback) {
       console.log("createCallLogsAnalyticsTable")
-      var tableName = "rt_call_logs_" + this.accountId
+      var tableName = "call_report_logs_" + this.accountId
       var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' ('
       query += 'party_id VARCHAR(48) PRIMARY KEY'
       query += ', session_id VARCHAR(12)'
@@ -607,14 +564,12 @@ var engine = User.prototype = {
       query += ', agent_number VARCHAR(15)'
       query += ', direction VARCHAR(12)',
       query += ', calling_timestamp BIGINT DEFAULT 0'
-      query += ', call_duration BIGINT DEFAULT 0'
       query += ', ringing_timestamp BIGINT DEFAULT 0'
       query += ', connecting_timestamp BIGINT DEFAULT 0'
       query += ', disconnecting_timestamp BIGINT DEFAULT 0'
       query += ', holding_timestamp BIGINT DEFAULT 0'
       query += ', call_hold_duration INT DEFAULT 0'
       query += ', holding_count INT DEFAULT 0'
-      query += ', call_respond_duration INT DEFAULT 0'
       query += ', call_type VARCHAR(32)',
       query += ', call_action VARCHAR(15)',
       query += ', call_result VARCHAR(128)',
@@ -631,7 +586,7 @@ var engine = User.prototype = {
     },
     createAccountMonitoredExtensionsTable: function(callback) {
       console.log("createAccountMonitoredExtensionsTable")
-      var tableName = "rt_report_agents_" + this.accountId
+      var tableName = "call_report_agents_" + this.accountId
       var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64))'
       pgdb.create_table(query, (err, res) => {
           if (err) {
@@ -645,7 +600,7 @@ var engine = User.prototype = {
     },
     createAccountExtensionsTable: function(callback) {
       console.log("createAccountExtensionsTable")
-      var tableName = "rt_extensions_" + this.accountId
+      var tableName = "call_report_extensions_" + this.accountId
       var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, name VARCHAR(64))'
       pgdb.create_table(query, (err, res) => {
           if (err) {
@@ -658,7 +613,7 @@ var engine = User.prototype = {
         })
     },
     updateAccountMonitoredExtensionsTable: function(extensionList){
-      var tableName = "rt_report_agents_" + this.accountId
+      var tableName = "call_report_agents_" + this.accountId
       var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name) VALUES "
       var lastIndex = extensionList.length - 1
       for (var i=0; i<extensionList.length; i++){
@@ -681,7 +636,7 @@ var engine = User.prototype = {
       })
     },
     updateUserMonitoredExtensionsTable: function(extensionList){
-      var tableName = "rt_monitored_" + this.extensionId
+      var tableName = "call_report_monitored_" + this.extensionId
       var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name) VALUES "
       var lastIndex = extensionList.length - 1
       for (var i=0; i<extensionList.length; i++){
@@ -704,7 +659,7 @@ var engine = User.prototype = {
       })
     },
     removeExtensionFromMonitoredTable: function(monExtId){
-      var tableName = "rt_monitored_" + this.extensionId
+      var tableName = "call_report_monitored_" + this.extensionId
       var query = 'DELETE FROM ' + tableName
       query += " WHERE extension_id='" + monExtId + "'"
 
@@ -718,7 +673,7 @@ var engine = User.prototype = {
       })
     },
     updateAccountExtensionsTable: function(extensionList){
-      var tableName = "rt_extensions_" + this.accountId
+      var tableName = "call_report_extensions_" + this.accountId
       var query = "INSERT INTO " + tableName + "(extension_id, name) VALUES "
       var lastIndex = extensionList.length - 1
       for (var i=0; i<extensionList.length; i++){
@@ -751,38 +706,6 @@ module.exports = User;
 
 function sortCallTime(a, b){
   return b.calling_timestamp - a.calling_timestamp
-}
-
-function formatDurationTime(dur){
-  dur = Math.floor(dur)
-  if (dur > 86400) {
-    var d = Math.floor(dur / 86400)
-    dur = dur % 86400
-    var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    m = (m>9) ? m : ("0" + m)
-    dur = dur % 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return d + "d " + h + ":" + m + ":" + s
-  }else if (dur >= 3600){
-    var h = Math.floor(dur / 3600)
-    dur = dur % 3600
-    var m = Math.floor(dur / 60)
-    m = (m>9) ? m : ("0" + m)
-    dur = dur % 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return h + ":" + m + ":" + s
-  }else if (dur >= 60){
-    var m = Math.floor(dur / 60)
-    dur %= 60
-    var s = (dur>9) ? dur : ("0" + dur)
-    return m + ":" + s
-  }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
-    return dur + " secs"
-  }
 }
 
 async function startWebhookSubscription(extensionId) {
@@ -854,7 +777,7 @@ function removeExtensionFromAccountAnalyticsTable(accountId, idList){
   var extensions = ""
   for (var id of idList)
     extensions += "'"+id+"'"
-  var tableName = "rt_report_agents_" + accountId
+  var tableName = "call_report_agents_" + accountId
   var query = 'DELETE FROM ' + tableName
   query += " WHERE extension_id IN (" + extensions + ")"
 
@@ -868,7 +791,7 @@ function removeExtensionFromAccountAnalyticsTable(accountId, idList){
   })
 }
 function updateAccountExtensionsTable(accountId, extensionList){
-  var tableName = "rt_extensions_" + accountId
+  var tableName = "call_report_extensions_" + accountId
   var query = "INSERT INTO " + tableName + "(extension_id, name) VALUES "
   var lastIndex = extensionList.length - 1
   for (var i=0; i<extensionList.length; i++){
@@ -894,7 +817,7 @@ function updateAccountExtensionsTable(accountId, extensionList){
 }
 
 function updateCustomersTable(accountId, subscriptionId){
-  var query = "INSERT INTO rt_call_analytics_customers (account_id, subscription_id)"
+  var query = "INSERT INTO call_report_customers (account_id, subscription_id)"
   query += " VALUES ($1,$2)"
   var values = [accountId, subscriptionId]
   query += " ON CONFLICT (account_id) DO UPDATE SET subscription_id='" + subscriptionId + "'"

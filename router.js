@@ -31,7 +31,7 @@ exports.activeAccounts = activeAccounts
 autoStart()
 function autoStart(){
   console.log("autoStart")
-  var query = `SELECT * FROM rt_call_analytics_customers`
+  var query = `SELECT * FROM call_report_customers`
   pgdb.read(query, (err, result) => {
     if (err){
       console.error(err.message);
@@ -42,10 +42,12 @@ function autoStart(){
           function(item, callback){
             console.log("account info: " + item.account_id + " / " + item.subscription_id)
             var account = new Account(item.account_id, item.subscription_id)
-            account.setup((err, result) => {
-              activeAccounts.push(account)
-              console.log("activeAccounts.length: " + activeAccounts.length)
-              callback(null, result)
+            account.setup((err, response) => {
+              if (!err){
+                activeAccounts.push(account)
+                console.log("activeAccounts.length: " + activeAccounts.length)
+                callback(null, response)
+              }
             })
           },
           function (err){
@@ -58,7 +60,7 @@ function autoStart(){
 
 function createCustomersTable() {
   console.log("createCustomersTable")
-  var query = 'CREATE TABLE IF NOT EXISTS rt_call_analytics_customers (account_id VARCHAR(15) PRIMARY KEY, subscription_id VARCHAR(64))'
+  var query = 'CREATE TABLE IF NOT EXISTS call_report_customers (account_id VARCHAR(15) PRIMARY KEY, subscription_id VARCHAR(64))'
   pgdb.create_table(query, (err, res) => {
       if (err) {
         console.log(err, err.message)
@@ -94,7 +96,7 @@ var router = module.exports = {
         res.render('main', {
             userName: users[index].getUserName(),
             isAdminUser: users[index].isAdminUser,
-            extensions: users[index].extensionList,
+            data: users[index].monitoredExtensionList,
           })
       else{
         this.forceLogin(req, res)
@@ -149,7 +151,7 @@ var router = module.exports = {
     res.render('main', {
         userName: users[index].getUserName(),
         isAdminUser: users[index].isAdminUser,
-        extensions: users[index].extensionList,
+        data: users[index].monitoredExtensionList,
     })
   },
   loadSettingsPage: function(req, res){
