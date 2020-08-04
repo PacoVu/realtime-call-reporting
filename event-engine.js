@@ -391,7 +391,7 @@ function updateCallReportTable(accountId, extensionId, call){
   query += call.callType + "','"
   query += call.callAction + "','"
   query += call.callResult + "')"
-  //console.log(query)
+  console.log(query)
 
   pgdb.insert(query, [], (err, result) =>  {
     if (err){

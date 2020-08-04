@@ -778,7 +778,7 @@ var engine = User.prototype = {
             callback(null, "Ok")
           }
         })
-    },
+    },    
     createCallLogsAnalyticsTable: function(callback) {
       console.log("createCallLogsAnalyticsTable")
       var tableName = "rt_call_logs_" + this.accountId
@@ -1033,62 +1033,6 @@ async function readAllRegisteredWebHookSubscriptions(p) {
   }
 }
 
-/*
-function readAnalyticsDb(extensionId, callback){
-  var tableName = "rt_analytics_" + accountId
-  var query = "SELECT * FROM " + tableName + " WHERE extension_id='" + extensionId + "'"
-  pgdb.read(query, (err, result) => {
-    if (err){
-      console.error(err.message);
-      callback("err", null)
-    }
-    var allRows = result.rows
-    if (result.rows){
-      var item = result.row[0]
-      var extension = {
-        id: item.extension_id,
-        name: item.name,
-        callStatistics: {
-          totalCallDuration: parseInt(item.total_call_duration),
-          totalCallRespondDuration: parseInt(item.total_call_respond_duration),
-          inboundCalls: parseInt(item.inbound_calls),
-          outboundCalls: parseInt(item.outbound_calls),
-          missedCalls: parseInt(item.missed_calls),
-          voicemails: parseInt(item.voicemails)
-        },
-        activeCalls: []
-      }
-      callback("err", extension)
-    }else
-      callback("err", null)
-  })
-}
-*/
-/*
-function updateAnalyticsTable(accountId, extensionList){
-  var tableName = "rt_analytics_" + accountId
-  var query = "INSERT INTO " + tableName + "(extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails) VALUES "
-  var lastIndex = extensionList.length - 1
-  for (var i=0; i<extensionList.length; i++){
-    var ext = extensionList[i]
-    var name = ext.name.replace(/'/g,"''")
-    var t = new Date().getTime()
-    if (i < lastIndex)
-      query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0, 0, 0),`
-    else
-      query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0, 0, 0)`
-  }
-  query += " ON CONFLICT (extension_id) DO NOTHING" // UPDATE SET name='" + ext.name + "'"
-  pgdb.insert(query, [], (err, result) =>  {
-    if (err){
-      console.error(err.message);
-      console.log("QUERY: " + query)
-    }else{
-      console.log("updateAnalyticsTable DONE");
-    }
-  })
-}
-*/
 function removeExtensionFromAccountAnalyticsTable(accountId, idList){
   var extensions = ""
   for (var id of idList)
@@ -1106,128 +1050,7 @@ function removeExtensionFromAccountAnalyticsTable(accountId, idList){
     }
   })
 }
-/*
-function createAccountExtensionsTable(accountId, callback) {
-  console.log("createAccountExtensionsTable")
-  var tableName = "rt_extensions_" + accountId
-  var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, name VARCHAR(64))'
-  pgdb.create_table(query, (err, res) => {
-      if (err) {
-        console.log(err, res)
-        callback(err, err.message)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-      }
-    })
-}
 
-function createAccountAnalyticsTable(accountId, callback) {
-  console.log("createAccountAnalyticsTable")
-  var tableName = "rt_analytics_" + accountId
-  var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64), total_call_duration BIGINT DEFAULT 0, total_call_respond_duration BIGINT DEFAULT 0, inbound_calls INT DEFAULT 0, outbound_calls INT DEFAULT 0, missed_calls INT DEFAULT 0, voicemails INT DEFAULT 0)'
-  pgdb.create_table(query, (err, res) => {
-      if (err) {
-        console.log(err, res)
-        callback(err, err.message)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-      }
-    })
-}
-// for users to creat own dashboard
-function createUserMonitoredExtensionTable(extensionId, callback) {
-  console.log("createUserMonitoredExtensionTable")
-  var tableName = "rt_monitored_" + extensionId
-  var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64))'
-  pgdb.create_table(query, (err, res) => {
-      if (err) {
-        console.log(err, res)
-        callback(err, err.message)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-      }
-    })
-}
-*/
-/*
-function updateExtensionMonitoredTable(extensionId, extensionList){
-  var tableName = "rt_monitored_" + extensionId
-  var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name) VALUES "
-  var lastIndex = extensionList.length - 1
-  for (var i=0; i<extensionList.length; i++){
-    var ext = extensionList[i]
-    var name = ext.name.replace(/'/g,"''")
-    var date = new Date().getTime()
-    if (i < lastIndex)
-      query += `('${ext.id}',${date},'${name}'),`
-    else
-      query += `('${ext.id}',${date},'${name}')`
-  }
-  query += " ON CONFLICT (extension_id) DO NOTHING" // UPDATE SET name='" + ext.name + "'"
-  pgdb.insert(query, [], (err, result) =>  {
-    if (err){
-      console.error(err.message);
-      console.log("QUERY: " + query)
-    }else{
-      console.log("updateExtensionMonitoredTable DONE");
-    }
-  })
-}
-*/
-/*
-function removeExtensionFromMonitoredTable(extensionId, monExtId){
-  var tableName = "rt_monitored_" + extensionId
-  var query = 'DELETE FROM ' + tableName
-  query += " WHERE extension_id='" + monExtId + "'"
-
-  pgdb.remove(query, (err, result) =>  {
-    if (err){
-      console.error(err.message);
-      console.log("QUERY: " + query)
-    }else{
-      console.log("removeExtensionFromMonitoredTable DONE");
-    }
-  })
-}
-*/
-/*
-function createCallLogsAnalyticsTable(accountId, callback) {
-  console.log("createCallLogsAnalyticsTable")
-  var tableName = "rt_call_logs_" + accountId
-
-  var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' ('
-  query += 'session_id VARCHAR(12) PRIMARY KEY'
-  query += ', extension_id VARCHAR(15)'
-  query += ', customer_number VARCHAR(15)'
-  query += ', agent_number VARCHAR(15)'
-  query += ', direction VARCHAR(12)',
-  query += ', calling_timestamp BIGINT DEFAULT 0'
-  query += ', call_duration BIGINT DEFAULT 0'
-  query += ', ringing_timestamp BIGINT DEFAULT 0'
-  query += ', connecting_timestamp BIGINT DEFAULT 0'
-  query += ', disconnecting_timestamp BIGINT DEFAULT 0'
-  query += ', holding_timestamp BIGINT DEFAULT 0'
-  query += ', call_hold_duration INT DEFAULT 0'
-  query += ', holding_count INT DEFAULT 0'
-  query += ', call_respond_duration INT DEFAULT 0'
-  query += ', call_type VARCHAR(32)',
-  query += ', call_action VARCHAR(15)',
-  query += ', call_result VARCHAR(128)',
-  query += ')'
-  pgdb.create_table(query, (err, res) => {
-      if (err) {
-        console.log(err, res)
-        callback(err, err.message)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-      }
-    })
-}
-*/
 function updateAccountExtensionsTable(accountId, extensionList){
   var tableName = "rt_extensions_" + accountId
   var query = "INSERT INTO " + tableName + "(extension_id, name) VALUES "
