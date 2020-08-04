@@ -252,7 +252,7 @@ var engine = Account.prototype = {
       if (party.uiCallInfo){
         if (party.uiCallInfo.primary.type  == "QueueName")
           type = "Queue"
-        
+
       }else{
         type = jsonObj.body.origin.type
       }
@@ -301,8 +301,8 @@ var engine = Account.prototype = {
       var activeCall = {
                 sessionId: jsonObj.body.sessionId,
                 partyId: party.id,
-                customerNumber: customerNumber,
-                agentNumber: agentNumber,
+                customerNumber: formatPhoneNumber(customerNumber),
+                agentNumber: formatPhoneNumber(agentNumber),
                 status: status,
                 direction: party.direction,
                 callingTimestamp: callingTimestamp,
@@ -434,6 +434,16 @@ function readAccountMonitoredExtensionsFromTable(accountId, callback){
     console.log("Done autosetup")
     callback(null, monitoredExtensionList)
   });
+}
+
+function formatPhoneNumber(phoneNumberString) {
+  var cleaned = ('' + phoneNumberString).replace(/\D/g, '')
+  var match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/)
+  if (match) {
+    var intlCode = match[1] //(match[1] ? '+1 ' : '')
+    return [intlCode, '(', match[2], ') ', 'xxx-xxxx'].join('')
+  }
+  return phoneNumberString
 }
 
 function sortByAddedDate(a, b){

@@ -333,9 +333,9 @@ var engine = User.prototype = {
           var jsonObj = await resp.json()
           for (var record of jsonObj.records){
             var item = {
-              name: record.name.trim(),
-              id: record.id,
-              numbers: record.extensionNumbers
+              name: record.contact.firstName.trim(), //record.name.trim(),
+              id: record.id
+              //numbers: record.extensionNumbers
             }
             //this.eventEngine.extensionList.push(item)
             extensionList.push(item)

@@ -79,8 +79,8 @@ function renderCallLogs(){
 
     var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-8"><div class="col-xs-12">`
     html += `<div class='col-sm-2'><b>${call.name}</b></div>`
-    html += `<div class='col-sm-1'>${formatPhoneNumber(call.agentNumber)}</div>`
-    html += `<div class='col-sm-1'>${formatPhoneNumber(call.customerNumber)}</div>`
+    html += `<div class='col-sm-1'>${call.agentNumber}</div>`
+    html += `<div class='col-sm-1'>${call.customerNumber}</div>`
     html += `<div class='col-sm-1'>${call.direction}</div>`
     html += `<div class='col-sm-1'>${call.callType}</div>`
     html += `<div class='col-sm-1'>${call.callAction}</div>`
