@@ -123,11 +123,11 @@ var engine = User.prototype = {
           if (json.records.length > 0){
             for (var record of json.records) {
               if (record.deliveryMode.transportType == "WebHook"){
-                //if (this.subscriptionId == record.id){
+                if (this.subscriptionId == record.id){
                   await p.delete('/restapi/v1.0/subscription/' + record.id)
                   console.log("Deleted " + this.subscriptionId)
-                //}else
-                //  console.log("sub id " + record.id)
+                }else
+                  console.log("sub id " + record.id)
               }
             }
           }
