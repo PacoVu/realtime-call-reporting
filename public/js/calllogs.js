@@ -4,8 +4,8 @@ function init(){
   $( "#fromdatepicker" ).datepicker({ dateFormat: "yy-mm-dd"});
   $( "#todatepicker" ).datepicker({dateFormat: "yy-mm-dd"});
   var pastMonth = new Date();
-  var day = pastMonth.getDate()
-  var month = pastMonth.getMonth() - 1
+  var day = pastMonth.getDate()  - 1
+  var month = pastMonth.getMonth()
   var year = pastMonth.getFullYear()
   if (month < 0){
     month = 11
@@ -25,8 +25,9 @@ function init(){
     var h = $(window).height() - (height + 110);
     $("#call_logs_list").height(h)
   }
-  var offset = new Date().getTimezoneOffset()/60;
-  $('#timezone option[value='+offset+']').prop('selected', true);
+  var offset = (new Date().getTimezoneOffset()/60) * (-1)
+  $('#timezone option[value=' + offset + ']').prop('selected', true)
+  //readCallLogs()
 }
 
 function readCallLogs(){
@@ -38,8 +39,9 @@ function readCallLogs(){
   }
   var timeOffset = parseInt($("#timezone").val())
   timeOffset *= 3600000
-  var from = new Date($("#fromdatepicker").val() + "T00:00:00.000Z").getTime() + timeOffset
-  var to = new Date($("#todatepicker").val() + "T23:59:59.999Z").getTime() + timeOffset
+  var from = new Date($("#fromdatepicker").val() + "T00:00:00.000Z").getTime() - timeOffset
+  var to = new Date($("#todatepicker").val() + "T23:59:59.999Z").getTime() - timeOffset
+
   var data = {
     from: from,
     to: to,
@@ -48,17 +50,18 @@ function readCallLogs(){
     action: $("#action").val(),
     extensions: extensionIds
   }
-  //alert(JSON.stringify(data))
-  //return
   var posting = $.post( url, data );
   posting.done(function( res ) {
     if (res.status == "ok"){
-      //callLogList = res.data
       callLogList = []
       for (var call of res.data){
         call['callLength'] = (call.disconnectTimestamp - call.callTimestamp) / 1000
-        call['connectDuration'] = (call.disconnectingTimestamp > 0) ?(call.disconnectingTimestamp - call.connectingTimestamp) / 1000 : 0
+        call['connectDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) : 0
         call['talkDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) - call.callHoldDuration : 0
+        if (call.direction == "Inbound" && call.connectTimestamp > 0)
+          call['ringDuration'] = (call.connectTimestamp - call.ringTimestamp) / 1000
+        else
+          call['ringDuration'] = 0
         callLogList.push(call)
       }
       renderCallLogs()
@@ -69,18 +72,19 @@ function renderCallLogs(){
   $("#call_logs_list").empty()
   var options = { year: 'numeric', month: 'short', day: 'numeric' };
   var timeOffset = parseInt($("#timezone").val())
+  //alert(timeOffset)
   timeOffset *= 3600000
   for (var call of callLogList){
-    var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var connectTime = (call.connectTimestamp > 0) ? new Date(call.connectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var startDate = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toLocaleDateString("en-US", options) : "-"
-    var startTime = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var connectTime = (call.connectTimestamp > 0) ? new Date(call.connectTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
+    var startDate = (call.callTimestamp > 0) ? new Date(call.callTimestamp + timeOffset).toLocaleDateString("en-US", options) : "-"
+    var startTime = (call.callTimestamp > 0) ? new Date(call.callTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
     var disconnectTime = (call.disconnectTimestamp > 0) ? new Date(call.disconnectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
 
-    var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-8"><div class="col-xs-12">`
-    html += `<div class='col-sm-2'><b>${call.name}</b></div>`
-    html += `<div class='col-sm-1'>${call.agentNumber}</div>`
-    html += `<div class='col-sm-1'>${call.customerNumber}</div>`
+    var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-7"><div class="col-xs-12">`
+    html += `<div class='col-sm-1'><b>${call.name}</b></div>`
+    html += `<div class='col-sm-2'>${call.agentNumber}</div>`
+    html += `<div class='col-sm-2'>${call.customerNumber}</div>`
     html += `<div class='col-sm-1'>${call.direction}</div>`
     html += `<div class='col-sm-1'>${call.callType}</div>`
     html += `<div class='col-sm-1'>${call.callAction}</div>`
@@ -88,61 +92,22 @@ function renderCallLogs(){
     html += `<div class='col-sm-1'>${startTime}</div>`
     html += `<div class='col-sm-1'>${ringTime}</div>`
     html += `<div class='col-sm-1'>${connectTime}</div>`
-    html += `<div class='col-sm-1'>${disconnectTime}</div>`
     html += `</div></div>`
 
-    html += `<div class="col-sm-4"><div class="col-xs-12">`
+    html += `<div class="col-sm-5"><div class="col-xs-12">`
+    html += `<div class='col-sm-1'>${disconnectTime}</div>`
     html += `<div class='col-sm-2'>${formatDurationTime(call.callLength)}</div>`
     html += `<div class='col-sm-2'>${formatDurationTime(call.connectDuration)}</div>`
     html += `<div class='col-sm-2'>${formatDurationTime(call.talkDuration)}</div>`
     html += `<div class='col-sm-1'>${formatDurationTime(call.callHoldDuration)}</div>`
     html += `<div class='col-sm-1'>${call.holdingCount}</div>`
-    html += `<div class='col-sm-1'>${formatDurationTime(call.callRespondDuration)}</div>`
-    html += `<div class='col-sm-3'>${call.callResult}</div>`
+    html += `<div class='col-sm-1'>${formatDurationTime(call.ringDuration)}</div>`
+    html += `<div class='col-sm-2'>${call.callResult}</div>`
     html += `</div></div></div>`
     $("#call_logs_list").append(html)
   }
 }
-/*
-function renderCallLogs(){
-  $("#call_logs_list").empty()
-  var options = { year: 'numeric', month: 'short', day: 'numeric' };
-  for (var call of callLogList){
-    var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var connectTime = (call.connectTimestamp > 0) ? new Date(call.connectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var startDate = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toLocaleDateString("en-US", options) : "-"
-    var startTime = (call.callTimestamp > 0) ? new Date(call.callTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var disconnectTime = (call.disconnectTimestamp > 0) ? new Date(call.disconnectTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-    var callLength = (call.disconnectTimestamp - call.callTimestamp) / 1000
-    var talkDuration = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) : 0
 
-    var html = `<div id="${call.partyId}" class="col-xs-12"><div class="col-sm-8"><div class="col-xs-12">`
-    html += `<div class='col-sm-2'><b>${call.name}</b></div>`
-    html += `<div class='col-sm-1'>${formatPhoneNumber(call.agentNumber)}</div>`
-    html += `<div class='col-sm-1'>${formatPhoneNumber(call.customerNumber)}</div>`
-    html += `<div class='col-sm-1'>${call.direction}</div>`
-    html += `<div class='col-sm-1'>${call.callType}</div>`
-    html += `<div class='col-sm-1'>${call.callAction}</div>`
-    html += `<div class='col-sm-1'>${startDate}</div>`
-    html += `<div class='col-sm-1'>${startTime}</div>`
-    html += `<div class='col-sm-1'>${ringTime}</div>`
-    html += `<div class='col-sm-1'>${connectTime}</div>`
-    html += `<div class='col-sm-1'>${disconnectTime}</div>`
-    html += `</div></div>`
-
-    html += `<div class="col-sm-4"><div class="col-xs-12">`
-    html += `<div class='col-sm-2'>${formatDurationTime(callLength)}</div>`
-    html += `<div class='col-sm-2'>${formatDurationTime(call.callDuration)}</div>`
-    html += `<div class='col-sm-2'>${formatDurationTime(talkDuration - call.callHoldDuration)}</div>`
-    html += `<div class='col-sm-1'>${formatDurationTime(call.callHoldDuration)}</div>`
-    html += `<div class='col-sm-1'>${call.holdingCount}</div>`
-    html += `<div class='col-sm-1'>${formatDurationTime(call.callRespondDuration)}</div>`
-    html += `<div class='col-sm-3'>${call.callResult}</div>`
-    html += `</div></div></div>`
-    $("#call_logs_list").append(html)
-  }
-}
-*/
 function logout(){
   window.location.href = "index?n=1"
 }
@@ -153,28 +118,21 @@ function formatDurationTime(dur){
     var d = Math.floor(dur / 86400)
     dur = dur % 86400
     var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return d + "d " + h + "h " + m + "m " + s + "s"
   }else if (dur >= 3600){
     var h = Math.floor(dur / 3600)
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return h + "h " + m + "m " + s + "s"
   }else if (dur >= 60){
     var m = Math.floor(dur / 60)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return m + "m " + s + "s"
   }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
     return dur + "s"
   }
 }
