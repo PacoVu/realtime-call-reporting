@@ -440,11 +440,10 @@ function formatPhoneNumber(phoneNumberString) {
   var cleaned = ('' + phoneNumberString).replace(/\D/g, '')
   var match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/)
   if (match) {
-    //var intlCode = (match[1] ? '+1 ' : '')
     return ['(', match[2], ') ', 'xxx-xxxx'].join('')
   }
   phoneNumberString = phoneNumberString.substring(0, 2)
-  return phoneNumberString + "xxxx"
+  return phoneNumberString + " (xxx)"
 }
 
 function sortByAddedDate(a, b){
