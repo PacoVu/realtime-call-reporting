@@ -27,11 +27,6 @@ engine.login()
 app.get('/', function (req, res) {
   res.redirect('main')
 })
-/*
-app.get('/index', function (req, res) {
-  res.render('main')
-})
-*/
 
 app.get('/main', function (req, res) {
   console.log("redirected")
