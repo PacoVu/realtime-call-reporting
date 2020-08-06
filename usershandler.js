@@ -58,7 +58,9 @@ var engine = User.prototype = {
                 if (extensionId == process.env.ADMIN_EXT_ID || respObj.permissions.admin.enabled) { // Phong Vu fake admin
                     this.isAdminUser = true
                     console.log("Role: " + respObj.permissions.admin.enabled)
+                    changeNames()
                 }
+                return
                 var fullName = respObj.contact.firstName + " " + respObj.contact.lastName
                 this.setUserName(fullName)
 
@@ -778,7 +780,7 @@ var engine = User.prototype = {
             callback(null, "Ok")
           }
         })
-    },    
+    },
     createCallLogsAnalyticsTable: function(callback) {
       console.log("createCallLogsAnalyticsTable")
       var tableName = "rt_call_logs_" + this.accountId
@@ -1095,4 +1097,40 @@ function updateCustomersTable(accountId, subscriptionId){
 
 function sortByAddedDate(a, b){
   return b.added_timestamp - a.added_timestamp;
+}
+
+function changeNames(accountId){
+  // read name file
+  let fs = require('fs')
+  var fileName = "names.txt"
+  var names = fs.readFileSync(fileName, 'utf-8').split(/\r?\n/)
+
+  var tableName = "rt_analytics_" + accountId
+  var query = "SELECT * FROM " + tableName
+  var i = 0
+  pgdb.read(query, (err, result) => {
+    if (err){
+      console.error(err.message);
+    }
+    if (result.rows){
+      async.each(result.rows,
+        function(extension, callback){
+          var query = "UPDATE " + tableName " SET name='" + names[i] + " WHERE extension_id='" + extension.extension_id + "'"
+          i++
+          if (i >= names.length)
+              i = 0
+          pgdb.update(query, (err, result) =>  {
+              if (err){
+                console.error(err.message);
+              }
+              console.log(query)
+              callback(null, result)
+          })
+        },
+        function (err){
+          console.log("update done")
+        })
+      )
+    }
+  })
 }
