@@ -109,11 +109,11 @@ function makeActiveCallBlock(call){
     var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
     html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
     if (call.direction == "Inbound"){
-      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.customerNumber)}</div>`
-      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.agentNumber)} </div>`
+      html += `<div class='col-sm-4 center'>From: ${call.customerNumber}</div>`
+      html += `<div class='col-sm-4 center'>To: ${call.agentNumber} </div>`
     }else{
-      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.agentNumber)}</div>`
-      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.customerNumber)} </div>`
+      html += `<div class='col-sm-4 center'>From: ${call.agentNumber}</div>`
+      html += `<div class='col-sm-4 center'>To: ${call.customerNumber} </div>`
     }
     if (call.status == "NO-CALL"){
       html += `<div class='col-sm-4 center'>Result: ${call.callResult}</div>`
