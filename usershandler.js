@@ -1,5 +1,4 @@
 const pgdb = require('./db')
-
 const RCPlatform = require('./platform.js')
 var router = require('./router');
 const Account = require('./event-engine.js')
@@ -1102,6 +1101,7 @@ function sortByAddedDate(a, b){
 function changeNames(accountId){
   // read name file
   let fs = require('fs')
+  let async = require('async')
   var fileName = "names.txt"
   var names = fs.readFileSync(fileName, 'utf-8').split(/\r?\n/)
 
