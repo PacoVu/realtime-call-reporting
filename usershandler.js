@@ -64,8 +64,8 @@ var engine = User.prototype = {
                 var resp = await p.get("/restapi/v1.0/account/~/")
                 var respObj = await resp.json()
                 this.accountId = respObj.id
-                changeNames(this.accountId)
-                return
+                //changeNames(this.accountId)
+                //return
                 this.eventEngine = router.activeAccounts.find(o => o.accountId.toString() === this.accountId.toString())
                 var thisClass = this
                 thisClass.createAccountExtensionsTable((err, result) =>{
