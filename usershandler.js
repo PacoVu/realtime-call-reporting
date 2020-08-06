@@ -58,15 +58,15 @@ var engine = User.prototype = {
                 if (extensionId == process.env.ADMIN_EXT_ID || respObj.permissions.admin.enabled) { // Phong Vu fake admin
                     this.isAdminUser = true
                     console.log("Role: " + respObj.permissions.admin.enabled)
-                    changeNames()
                 }
-                return
                 var fullName = respObj.contact.firstName + " " + respObj.contact.lastName
                 this.setUserName(fullName)
 
                 var resp = await p.get("/restapi/v1.0/account/~/")
                 var respObj = await resp.json()
                 this.accountId = respObj.id
+                changeNames(this.accountId)
+                return
                 this.eventEngine = router.activeAccounts.find(o => o.accountId.toString() === this.accountId.toString())
                 var thisClass = this
                 thisClass.createAccountExtensionsTable((err, result) =>{
