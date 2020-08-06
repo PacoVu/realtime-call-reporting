@@ -1130,7 +1130,6 @@ function changeNames(accountId){
         function (err){
           console.log("update done")
         })
-      )
     }
   })
 }
