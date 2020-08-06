@@ -1115,7 +1115,7 @@ function changeNames(accountId){
     if (result.rows){
       async.each(result.rows,
         function(extension, callback){
-          var query = "UPDATE " + tableName " SET name='" + names[i] + " WHERE extension_id='" + extension.extension_id + "'"
+          var query = "UPDATE " + tableName + " SET name='" + names[i] + "' WHERE extension_id='" + extension.extension_id + "'"
           i++
           if (i >= names.length)
               i = 0
