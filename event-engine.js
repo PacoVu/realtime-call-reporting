@@ -350,7 +350,3 @@ function updateCallReportTable(accountId, extensionId, call){
     }
   })
 }
-
-function sortByAddedDate(a, b){
-  return b.added_timestamp - a.added_timestamp
-}

@@ -6,10 +6,7 @@ const Account = require('./event-engine.js')
 
 function Engine(){
   this.extensionList = []
-  this.subscriptionId = ""
-  this.accountId = 0
-  this.extensionId = 0
-  this.userName = ""
+  this.accountId = ""
   this.eventEngine = undefined
   this.platform = null
 }
