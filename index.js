@@ -85,15 +85,17 @@ app.get('/get_account_extensions', function (req, res) {
   console.log("get_account_extensions")
   router.getAccountExtensions(req, res)
 })
-
+/*
 app.get('/read_extensions', function (req, res) {
   console.log("read_extensions")
   router.readExtensions(req, res)
 })
+*/
 app.get('/reset_account_subscription', function (req, res) {
   console.log("reset_account_subscription")
   router.resetAccountSubscription(req, res)
 })
+/*
 app.post('/add_extensions', function (req, res) {
   console.log("add_extensions")
   router.addExtensions(req, res)
@@ -102,6 +104,7 @@ app.get('/remove_extension', function (req, res) {
   console.log("add_extension")
   router.removeExtension(req, res)
 })
+*/
 app.get('/poll_calls', function (req, res){
   //console.log("poll_calls")
   router.pollActiveCalls(req, res)

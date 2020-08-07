@@ -184,6 +184,7 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].getAccountExtensions(res)
   },
+  /*
   readExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)
     console.log("index " + index)
@@ -203,6 +204,7 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].removeExtension(req, res)
   },
+  */
   adminAddExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)
     if (index < 0)

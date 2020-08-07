@@ -74,15 +74,15 @@ var engine = User.prototype = {
                     console.log("DONE createAccountMonitoredExtensionsTable")
                     thisClass.createCallLogsAnalyticsTable((err, result) =>{
                       console.log("DONE createCallLogsAnalyticsTable")
-                      thisClass.createUserMonitoredExtensionsTable((err, result) =>{
-                        console.log("DONE createUserMonitoredExtensionsTable")
+                      //thisClass.createUserMonitoredExtensionsTable((err, result) =>{
+                      //  console.log("DONE createUserMonitoredExtensionsTable")
                         //thisClass.readUserMonitoredExtensionsTable((err, result) => {
                           //console.log("DONE readUserMonitoredExtensionsTable")
                           console.log("call setup")
                           thisClass.setup()
                           res.send('login success');
                         //})
-                      })
+                      //})
                     })
                   })
                 })
@@ -221,6 +221,7 @@ var engine = User.prototype = {
         //console.log(JSON.stringify(this.monitoredExtensionList))
       }
     },
+    /*
     readExtensions: function(res){
       console.log("read extensions now")
       this.extensionList = []
@@ -274,6 +275,7 @@ var engine = User.prototype = {
         }
       });
     },
+    */
     getAccountExtensions: async function(res){
       var thisClass = this
       this.readAccountExtensionsFromTable((err, result) => {
@@ -334,9 +336,8 @@ var engine = User.prototype = {
           var jsonObj = await resp.json()
           for (var record of jsonObj.records){
             var item = {
-              name: record.contact.firstName.trim(), //record.name.trim(),
+              name: record.name.trim(),
               id: record.id
-              //numbers: record.extensionNumbers
             }
             //this.eventEngine.extensionList.push(item)
             extensionList.push(item)
@@ -440,6 +441,7 @@ var engine = User.prototype = {
         res.send(response)
       }
     },
+    /*
     removeExtension: async function(req, res){
       var id = req.query.id
       this.removeExtensionFromMonitoredTable(id)
@@ -479,6 +481,7 @@ var engine = User.prototype = {
       }
       res.send(response)
     },
+    */
     subscribeForNotification: async function(){
       var p = this.platform_engine.getPlatform()
       if (p){
@@ -536,7 +539,7 @@ var engine = User.prototype = {
         }
       }
     },
-    pollActiveCalls: function(res){
+    pollActiveCalls_ori: function(res){
       for (var ext  of this.monitoredExtensionList){
         var activeExt = this.eventEngine.monitoredExtensionList.find( o => o.id.toString() === ext.id.toString())
         if (activeExt){
@@ -557,6 +560,25 @@ var engine = User.prototype = {
       var response = {
           status: "ok",
           data: this.monitoredExtensionList
+      }
+      res.send(response)
+    },
+    pollActiveCalls: function(res){
+      for (var ext  of this.eventEngine.monitoredExtensionList){
+        var currentTimestamp = new Date().getTime()
+        for (var n=0; n<ext.activeCalls.length; n++){
+          var call = ext.activeCalls[n]
+          if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
+            call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
+          else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
+            call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
+          else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
+            call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
+        }
+      }
+      var response = {
+          status: "ok",
+          data: this.eventEngine.monitoredExtensionList
       }
       res.send(response)
     },
@@ -766,6 +788,7 @@ var engine = User.prototype = {
         res.send(response)
       });
     },
+    /*
     createUserMonitoredExtensionsTable: function(callback) {
       console.log("createUserMonitoredExtensionsTable")
       var tableName = "rt_monitored_" + this.extensionId
@@ -780,6 +803,7 @@ var engine = User.prototype = {
           }
         })
     },
+    */
     createCallLogsAnalyticsTable: function(callback) {
       console.log("createCallLogsAnalyticsTable")
       var tableName = "rt_call_logs_" + this.accountId
@@ -864,6 +888,7 @@ var engine = User.prototype = {
         }
       })
     },
+    /*
     updateUserMonitoredExtensionsTable: function(extensionList){
       var tableName = "rt_monitored_" + this.extensionId
       var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name) VALUES "
@@ -901,6 +926,7 @@ var engine = User.prototype = {
         }
       })
     },
+    */
     updateAccountExtensionsTable: function(extensionList){
       var tableName = "rt_extensions_" + this.accountId
       var query = "INSERT INTO " + tableName + "(extension_id, name) VALUES "
