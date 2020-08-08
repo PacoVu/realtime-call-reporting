@@ -961,7 +961,7 @@ var engine = User.prototype = {
           console.log("QUERY: " + query)
         }else{
           console.log("delete call report data DONE")
-          tableName = "rt_extensions_" + thisClass.accountId
+          tableName = "rt_analytics_" + thisClass.accountId
           query = `UPDATE ${tableName} SET total_call_duration=0, total_call_respond_duration=0, inbound_calls=0, outbound_calls=0, missed_calls=0, voicemails=0`
           pgdb.update(query, (err, result) =>  {
             if (err){
