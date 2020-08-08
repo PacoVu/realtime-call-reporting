@@ -409,8 +409,6 @@ var engine = User.prototype = {
               id: ext.id,
               name: ext.name,
               callStatistics: {
-                totalCallDuration: 0,
-                totalCallRespondDuration: 0,
                 inboundCalls: 0,
                 outboundCalls: 0,
                 missedCalls: 0,
@@ -840,7 +838,7 @@ var engine = User.prototype = {
     createAccountMonitoredExtensionsTable: function(callback) {
       console.log("createAccountMonitoredExtensionsTable")
       var tableName = "rt_analytics_" + this.accountId
-      var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64), total_call_duration BIGINT DEFAULT 0, total_call_respond_duration BIGINT DEFAULT 0, inbound_calls INT DEFAULT 0, outbound_calls INT DEFAULT 0, missed_calls INT DEFAULT 0, voicemails INT DEFAULT 0)'
+      var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' (extension_id VARCHAR(15) PRIMARY KEY, added_timestamp BIGINT NOT NULL, name VARCHAR(64), inbound_calls INT DEFAULT 0, outbound_calls INT DEFAULT 0, missed_calls INT DEFAULT 0, voicemails INT DEFAULT 0)'
       pgdb.create_table(query, (err, res) => {
           if (err) {
             console.log(err, res)
@@ -867,16 +865,16 @@ var engine = User.prototype = {
     },
     updateAccountMonitoredExtensionsTable: function(extensionList){
       var tableName = "rt_analytics_" + this.accountId
-      var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails) VALUES "
+      var query = "INSERT INTO " + tableName + " (extension_id, added_timestamp, name, inbound_calls, outbound_calls, missed_calls, voicemails) VALUES "
       var lastIndex = extensionList.length - 1
       for (var i=0; i<extensionList.length; i++){
         var ext = extensionList[i]
         var name = ext.name.replace(/'/g,"''")
         var t = new Date().getTime()
         if (i < lastIndex)
-          query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0, 0, 0),`
+          query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0),`
         else
-          query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0, 0, 0)`
+          query += `('${ext.id}',${t},'${name}', 0, 0, 0, 0)`
       }
       query += " ON CONFLICT (extension_id) DO NOTHING" // UPDATE SET name='" + ext.name + "'"
       pgdb.insert(query, [], (err, result) =>  {
@@ -962,7 +960,7 @@ var engine = User.prototype = {
         }else{
           console.log("delete call report data DONE")
           tableName = "rt_analytics_" + thisClass.accountId
-          query = `UPDATE ${tableName} SET total_call_duration=0, total_call_respond_duration=0, inbound_calls=0, outbound_calls=0, missed_calls=0, voicemails=0`
+          query = `UPDATE ${tableName} SET inbound_calls=0, outbound_calls=0, missed_calls=0, voicemails=0`
           pgdb.update(query, (err, result) =>  {
             if (err){
               console.error(err.message);

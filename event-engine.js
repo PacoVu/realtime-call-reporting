@@ -22,7 +22,7 @@ var engine = Account.prototype = {
         this.monitoredExtensionList.splice(index, 1)
     },
     processNotification: function(jsonObj){
-      console.log("+++++++++++ NEW EVENT ++++++++++++")
+      //console.log("+++++++++++ NEW EVENT ++++++++++++")
       //console.log(JSON.stringify(jsonObj))
       //console.log("+++++++++++ ========= ++++++++++++")
       // parse tel notification payload
@@ -75,7 +75,6 @@ var engine = Account.prototype = {
                         if (call.direction == "Inbound" && call.status == "RINGING"){
                           var respondTime = (call.connectingTimestamp - call.ringingTimestamp) / 1000
                           call.callRespondDuration = Math.round(respondTime)
-                          extension.callStatistics.totalcallRespondDuration += call.callRespondDuration
                         }
                       }
                       call.status = "CONNECTED"
@@ -191,7 +190,6 @@ var engine = Account.prototype = {
     handleDisconnection: function(extension, call){
       if (call.connectingTimestamp > 0){
         call.callDuration = Math.round((call.disconnectingTimestamp - call.connectingTimestamp) / 1000)
-        extension.callStatistics.totalCallDuration += call.callDuration
       }
       if (call.direction == "Inbound"){
         extension.callStatistics.inboundCalls++
@@ -336,24 +334,19 @@ function sortCallTime(a, b){
 function updateAnalyticsTable(accountId, extension){
   var tableName = "rt_analytics_" + accountId
 
-  var query = 'INSERT INTO ' +tableName+ ' (extension_id, added_timestamp, name, total_call_duration, total_call_respond_duration, inbound_calls, outbound_calls, missed_calls, voicemails)'
+  var query = 'INSERT INTO ' +tableName+ ' (extension_id, added_timestamp, name, inbound_calls, outbound_calls, missed_calls, voicemails)'
   query += " VALUES ('" + extension.id
   query += "'," + new Date().getTime()
   query += ",'" + extension.name
-  query += "'," + extension.callStatistics.totalCallDuration
-  query += "," + extension.callStatistics.totalCallRespondDuration
-  query += "," + extension.callStatistics.inboundCalls
+  query += "'," + extension.callStatistics.inboundCalls
   query += "," + extension.callStatistics.outboundCalls
   query += "," + extension.callStatistics.missedCalls
   query += "," + extension.callStatistics.voicemails + ")"
 
-  query += ' ON CONFLICT (extension_id) DO UPDATE SET total_call_duration= ' + extension.callStatistics.totalCallDuration + ","
-  query += ' total_call_respond_duration= ' + extension.callStatistics.totalCallRespondDuration + ", "
-  query += ' inbound_calls= ' + extension.callStatistics.inboundCalls + ", "
+  query += ' ON CONFLICT (extension_id) DO UPDATE SET inbound_calls= ' + extension.callStatistics.inboundCalls + ", "
   query += ' outbound_calls= ' + extension.callStatistics.outboundCalls + ", "
   query += ' missed_calls= ' + extension.callStatistics.missedCalls + ", "
   query += ' voicemails= ' + extension.callStatistics.voicemails
-  //query += ' WHERE extension_id="'+extension.id+'"'
 
   pgdb.insert(query, [], (err, result) =>  {
     if (err){
