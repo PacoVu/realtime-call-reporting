@@ -954,7 +954,7 @@ var engine = User.prototype = {
     },
     deleteReportData: function(res){
       var tableName = "rt_call_logs_" + this.accountId
-      var query = "DELETE * FROM " + tableName"
+      var query = "DELETE * FROM " + tableName
       var thisClass = this
       pgdb.delete(query, (err, result) =>  {
         if (err){
