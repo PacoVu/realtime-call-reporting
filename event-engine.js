@@ -3,7 +3,6 @@ const pgdb = require('./db')
 function Account(accountId, subscriptionId){
   this.accountId = accountId
   this.subscriptionId = subscriptionId
-  this.extensionList = []
   this.monitoredExtensionList = []
 }
 
@@ -410,7 +409,7 @@ function readAccountMonitoredExtensionsFromTable(accountId, callback){
   pgdb.read(query, (err, result) => {
     if (err){
       console.error(err.message);
-      callback(err.message, "error")
+      return callback(err.message, "error")
     }
     if (result.rows){
       result.rows.sort(sortByAddedDate)
