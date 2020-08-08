@@ -956,7 +956,7 @@ var engine = User.prototype = {
       var tableName = "rt_call_logs_" + this.accountId
       var query = "DELETE * FROM " + tableName
       var thisClass = this
-      pgdb.delete(query, (err, result) =>  {
+      pgdb.update(query, (err, result) =>  {
         if (err){
           console.error(err.message);
           console.log("QUERY: " + query)
