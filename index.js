@@ -95,11 +95,12 @@ app.get('/reset_account_subscription', function (req, res) {
   console.log("reset_account_subscription")
   router.resetAccountSubscription(req, res)
 })
-/*
-app.post('/add_extensions', function (req, res) {
-  console.log("add_extensions")
-  router.addExtensions(req, res)
+
+app.get('/delete_report_data', function (req, res) {
+  console.log("delete_report_data")
+  router.deleteReportData(req, res)
 })
+/*
 app.get('/remove_extension', function (req, res) {
   console.log("add_extension")
   router.removeExtension(req, res)

@@ -211,6 +211,25 @@ function resetSubscription(){
     });
 }
 
+function resetReportData(){
+  var r = confirm("Are you sure you want to delete all call report data?");
+  if (r == true) {
+    deleteReportData()
+  }
+}
+
+function deleteReportData(){
+    var url = `delete_report_data`
+    var getting = $.get( url );
+    getting.done(function( res ) {
+      if (res.status == "ok"){
+
+      }else{
+        alert("Cannot delete report data. please try again.")
+      }
+    });
+}
+
 function logout(){
   window.location.href = "index?n=1"
 }

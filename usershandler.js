@@ -952,6 +952,21 @@ var engine = User.prototype = {
         }
       })
     },
+    deleteReportData: function(res){
+      var tableName = "rt_call_logs_" + this.accountId
+      var query = "DELETE * FROM " + tableName"
+      var thisClass = this
+      pgdb.delete(query, (err, result) =>  {
+        if (err){
+          console.error(err.message);
+          console.log("QUERY: " + query)
+        }else{
+          console.log("delete call report data DONE")
+          tableName = "rt_extensions_" + thisClass.accountId
+          res.send({"status": "ok"})
+        }
+      })
+    },
     checkSubscription: async function(){
       readAllRegisteredWebHookSubscriptions()
     }

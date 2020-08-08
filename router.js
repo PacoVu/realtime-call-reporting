@@ -177,6 +177,13 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].resetAccountSubscription(req, res)
   },
+  deleteReportData: function(req, res){
+    var index = getUserIndex(req.session.userId)
+    console.log("index " + index)
+    if (index < 0)
+      return this.forceLogin(req, res)
+    users[index].deleteReportData(res)
+  },
   getAccountExtensions: function(req, res){
     var index = getUserIndex(req.session.userId)
     console.log("index " + index)
