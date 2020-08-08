@@ -942,7 +942,6 @@ var engine = User.prototype = {
       }
 
       query += " ON CONFLICT (extension_id) DO NOTHING" // UPDATE SET name='" + ext.name + "'"
-
       pgdb.insert(query, [], (err, result) =>  {
         if (err){
           console.error(err.message);
@@ -954,7 +953,7 @@ var engine = User.prototype = {
     },
     deleteReportData: function(res){
       var tableName = "rt_call_logs_" + this.accountId
-      var query = "DELETE * FROM " + tableName
+      var query = "DELETE FROM " + tableName
       var thisClass = this
       pgdb.update(query, (err, result) =>  {
         if (err){
@@ -963,7 +962,16 @@ var engine = User.prototype = {
         }else{
           console.log("delete call report data DONE")
           tableName = "rt_extensions_" + thisClass.accountId
-          res.send({"status": "ok"})
+          query = `UPDATE ${tableName} SET total_call_duration=0, total_call_respond_duration=0, inbound_calls=0, outbound_calls=0, missed_calls=0, voicemails=0`
+          pgdb.update(query, (err, result) =>  {
+            if (err){
+              console.error(err.message);
+              console.log("QUERY: " + query)
+            }else{
+              console.log("delete call stats data DONE")
+            }
+            res.send({"status": "ok"})
+          })
         }
       })
     },
