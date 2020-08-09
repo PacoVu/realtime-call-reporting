@@ -92,6 +92,8 @@ function pollResult(){
           }
         }
         updateSummary(res.data.length, ringing, connected, hold, voicemail)
+      }else{
+        updateSummary(0, 0, 0, 0, 0)
       }
       window.setTimeout(function(){
           pollResult()

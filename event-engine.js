@@ -411,8 +411,8 @@ function readAccountMonitoredExtensionsFromTable(accountId, callback){
           id: ext.extension_id,
           name: ext.name.trim(),
           callStatistics: {
-            totalCallDuration: parseInt(ext.total_call_duration),
-            totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
+            //totalCallDuration: parseInt(ext.total_call_duration),
+            //totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
             inboundCalls: parseInt(ext.inbound_calls),
             outboundCalls: parseInt(ext.outbound_calls),
             missedCalls: parseInt(ext.missed_calls),
