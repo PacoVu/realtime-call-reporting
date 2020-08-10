@@ -10,9 +10,7 @@ function User(id, mode){
   this.id = id
   this.extensionList = []
   this.subscriptionId = ""
-  //this.monitoredExtensionList = []
   this.updateData = false
-  this.localTimeOffset = (3600 * 7 * 1000)
   this.accountId = 0
   this.extensionId = 0
   this.userName = ""
@@ -44,7 +42,6 @@ var engine = User.prototype = {
       if (req.query.code) {
         var extensionId = await this.platform_engine.login(req.query.code)
         if (extensionId){
-            console.log("extensionId: " + extensionId)
             this.setExtensionId(extensionId)
             req.session.extensionId = extensionId;
             callback(null, extensionId)
@@ -74,8 +71,9 @@ var engine = User.prototype = {
                     console.log("DONE createAccountMonitoredExtensionsTable")
                     thisClass.createCallLogsAnalyticsTable((err, result) =>{
                       console.log("DONE createCallLogsAnalyticsTable")
-                      console.log("call setup")
-                      thisClass.setup(res)
+                      if (thisClass.isAdminUser)
+                        thisClass.setup()
+                      res.send('login success')
                     })
                   })
                 })
@@ -93,6 +91,18 @@ var engine = User.prototype = {
       } else {
         res.send('No Auth code');
         callback("error", null)
+      }
+    },
+    setup: function(){
+      if (this.eventEngine == undefined){
+        this.eventEngine = new Account(this.accountId, "")
+        this.eventEngine.setup((err, result) => {
+          router.activeAccounts.push(this.eventEngine)// maybe no need
+          this.subscribeForNotification()
+        })
+      }else{
+        console.log("Handled in autoStart()")
+        this.subscriptionId = this.eventEngine.subscriptionId
       }
     },
     loadSettingsPage: function(res){
@@ -129,7 +139,6 @@ var engine = User.prototype = {
           }else{
             this.updateCustomersTable()
           }
-          console.log("after sub")
           res.send({status:"ok"})
         }catch (e){
           console.error(e);
@@ -137,23 +146,6 @@ var engine = User.prototype = {
         }
       }else{
         res.send({status:"failed"})
-      }
-    },
-    setup: function(res){
-      if (this.eventEngine == undefined){
-        console.log("this account is not found from engine")
-        this.eventEngine = new Account(this.accountId, "")
-        this.eventEngine.setup((err, result) => {
-          router.activeAccounts.push(this.eventEngine)// maybe no need
-          console.log("FROM User class activeAccounts.length: " + router.activeAccounts.length)
-          this.subscribeForNotification()
-          res.send('login success')
-        })
-      }else{
-        console.log("Handled in autoStart()")
-        this.subscriptionId = this.eventEngine.subscriptionId
-        res.send('login success');
-        console.log("=========")
       }
     },
     getAccountExtensions: async function(res){
@@ -351,7 +343,6 @@ var engine = User.prototype = {
             console.log(this.subscriptionId)
           }
 
-          //updateCustomersTable(this.accountId, this.subscriptionId)
           // add a new engine
           if (this.eventEngine){
             console.log("Update eventEngine")
@@ -360,7 +351,6 @@ var engine = User.prototype = {
             console.log("create and add a new eventEngine")
             this.eventEngine = new Account(this.accountId, this.subscriptionId)
             this.eventEngine.setup()
-            //this.eventEngine.monitoredExtensionList = this.monitoredExtensionList
             router.activeAccounts.push(this.eventEngine)
           }
         }catch (e) {
@@ -390,6 +380,8 @@ var engine = User.prototype = {
       res.send(response)
     },
     readCallLogs: function(req, res){
+      if (this.eventEngine == undefined)
+        return res.send({"status": "failed", "message": "Need admin setup"})
       var tableName = "rt_call_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
@@ -423,8 +415,6 @@ var engine = User.prototype = {
             var obj = thisClass.eventEngine.monitoredExtensionList.find(o => o.id.toString() === item.extension_id)
             var name = (obj) ? obj.name : "Unknown"
 
-            //var ringTime = (item.ringing_timestamp > 0) ? new Date(item.ringing_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
-            //var connectTime = (item.connecting_timestamp> 0) ? new Date(item.connecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
             var call = {
               id: item.extension_id,
               name: name,
@@ -433,12 +423,11 @@ var engine = User.prototype = {
               customerNumber: item.customer_number,
               agentNumber: item.agent_number,
               direction: item.direction,
-              //startDate: "", //new Date(item.calling_timestamp - thisClass.localTimeOffset).toLocaleDateString("en-US", options),
-              callTimestamp: parseInt(item.calling_timestamp), //new Date(item.calling_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0],  // DOUBLE DEFAULT 0'
+              callTimestamp: parseInt(item.calling_timestamp),
               callDuration: parseInt(item.call_duration),
-              ringTimestamp: parseInt(item.ringing_timestamp), //ringTime,
-              connectTimestamp: parseInt(item.connecting_timestamp), //connectTime,
-              disconnectTimestamp: parseInt(item.disconnecting_timestamp), //new Date(item.disconnecting_timestamp - thisClass.localTimeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0], // DOUBLE DEFAULT 0'
+              ringTimestamp: parseInt(item.ringing_timestamp),
+              connectTimestamp: parseInt(item.connecting_timestamp),
+              disconnectTimestamp: parseInt(item.disconnecting_timestamp),
               holdTimestamp: parseInt(item.holding_timestamp),
               callHoldDuration: parseInt(item.call_hold_duration),
               holdingCount: item.holding_count,
@@ -459,6 +448,8 @@ var engine = User.prototype = {
       });
     },
     readReports: function(req, res){
+      if (this.eventEngine == undefined)
+        return res.send({"status": "failed", "message": "Need admin setup"})
       var tableName = "rt_call_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
@@ -504,9 +495,7 @@ var engine = User.prototype = {
         longestCallDuration: 0,
         longestTalkDuration: 0,
         longestRespondDuration: 0,
-        longestHoldDuration: 0,
-        averageRespondDuration: 0,
-        averageHoldDuration: 0
+        longestHoldDuration: 0
       }
       var thisClass = this
       pgdb.read(query, (err, result) => {
@@ -530,13 +519,9 @@ var engine = User.prototype = {
               reports.inboundCallTime[hour]++
               if (item.connecting_timestamp > item.ringing_timestamp){
                 var tempTime = (parseInt(item.connecting_timestamp) - parseInt(item.ringing_timestamp)) / 1000
-                if (tempTime < 120){ // cannot be longer than 2 mins???
-                  reports.averageRespondTime += tempTime
-                  if (tempTime > reports.longestRespondDuration)
-                    reports.longestRespondDuration = tempTime
-                }
-              }else{
-                //console.log(item.connecting_timestamp + " == " + item.ringing_timestamp)
+                if (tempTime > reports.longestRespondDuration)
+                  reports.longestRespondDuration = tempTime
+
               }
               reports.totalInboundCallDuration += parseInt(item.call_duration)
               reports.totalInboundHoldDuration += parseInt(item.call_hold_duration)
@@ -582,7 +567,6 @@ var engine = User.prototype = {
         }
         reports.totalInboundTalkDuration = (reports.totalInboundCallDuration - reports.totalInboundHoldDuration)
         reports.totalOutboundTalkDuration = (reports.totalOutboundCallDuration - reports.totalOutboundHoldDuration)
-        reports.averageRespondDuration /= reports.inbound
         var response = {
             status: "ok",
             data: reports

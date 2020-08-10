@@ -12,7 +12,6 @@ var engine = Account.prototype = {
       readAccountMonitoredExtensionsFromTable(this.accountId, (err, result) => {
         if ((!err))
           thisClass.monitoredExtensionList = result
-        console.log("Done engine setup")
         callback(null, "Done engine setup")
       })
     },
@@ -22,21 +21,14 @@ var engine = Account.prototype = {
         this.monitoredExtensionList.splice(index, 1)
     },
     processNotification: function(jsonObj){
-      //console.log("+++++++++++ NEW EVENT ++++++++++++")
-      //console.log(JSON.stringify(jsonObj))
-      //console.log("+++++++++++ ========= ++++++++++++")
       // parse tel notification payload
       if (this.monitoredExtensionList.length){
         for (var party of jsonObj.body.parties){
           if (party.extensionId){
             var extension = this.monitoredExtensionList.find(o => o.id === party.extensionId);
             if (extension){
-              console.log("Extension Id:" + party.extensionId)
-              console.log("Code: " + party.status.code)
-              console.log("Time: " + jsonObj.body.eventTime)
               if (extension.activeCalls.length){
-                console.log("HAS ACTIVE CALL")
-                console.log("=======")
+                // HAS ACTIVE CALL => update call data
                 for (var n=0; n < extension.activeCalls.length; n++){
                   var call = extension.activeCalls[n]
                   // match call party ids
@@ -50,7 +42,6 @@ var engine = Account.prototype = {
                       call.ringingTimestamp = new Date(jsonObj.body.eventTime).getTime()
                       call.localRingingTimestamp = new Date().getTime()
                       call.status = "RINGING"
-                      // check call direction
                       if (party.direction == "Inbound"){
                         if (party.from)
                           call.customerNumber = formatPhoneNumber(party.from.phoneNumber)
@@ -79,9 +70,8 @@ var engine = Account.prototype = {
                       }
                       call.status = "CONNECTED"
                     }else if(party.status.code == "Disconnected"){
-                      console.log("Disconnected with ext id")
                       if (call.status == "NO-CALL"){
-                        console.log("Return from here")
+                        // already disconnected by customer
                         return
                       }
                       call.disconnectingTimestamp = new Date(jsonObj.body.eventTime).getTime()
@@ -98,25 +88,7 @@ var engine = Account.prototype = {
                       console.log("Parked: " + jsonObj.body.eventTime)
                       if (party.park.id)
                         call.parkNumber = party.park.id
-                      //call.callingTimestamp = new Date(jsonObj.body.eventTime).getTime()
-
                     }
-                    /*
-                    // check call direction
-                    if (party.direction == "Inbound"){
-                      if (party.from)
-                        call.customerNumber = party.from.phoneNumber
-                      else
-                        call.customerNumber = "Anonymous"
-                      if (party.to)
-                        call.agentNumber = party.to.phoneNumber
-                      else
-                        call.agentNumber = "Unknown"
-                    }else{ // outbound
-                      call.customerNumber = party.to.phoneNumber
-                      call.agentNumber = party.from.phoneNumber
-                    }
-                    */
                     break // party id found => processed and done
                   }
                 }
@@ -134,9 +106,7 @@ var engine = Account.prototype = {
                   break
                 }
               }else{
-                console.log("NEW CALL")
-                console.log("=======")
-                // create new active call obj
+                // New call => create new active call obj
                 var activeCall = this.createNewActiveCall(jsonObj, party)
                 extension.activeCalls.push(activeCall)
               }
@@ -411,8 +381,6 @@ function readAccountMonitoredExtensionsFromTable(accountId, callback){
           id: ext.extension_id,
           name: ext.name.trim(),
           callStatistics: {
-            //totalCallDuration: parseInt(ext.total_call_duration),
-            //totalCallRespondDuration: parseInt(ext.total_call_respond_duration),
             inboundCalls: parseInt(ext.inbound_calls),
             outboundCalls: parseInt(ext.outbound_calls),
             missedCalls: parseInt(ext.missed_calls),
