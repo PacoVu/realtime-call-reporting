@@ -241,15 +241,17 @@ var engine = User.prototype = {
       }
     },
     loadCallLogsPage: function (res) {
+      var extensionList = (this.eventEngine != undefined) ? this.eventEngine.monitoredExtensionList : []
       res.render('calllogs', {
         userName: this.userName,
-        //data: this.eventEngine.monitoredExtensionList
+        data: extensionList
       })
     },
     loadReportingsPage: function (res) {
+      var extensionList = (this.eventEngine != undefined) ? this.eventEngine.monitoredExtensionList : []
       res.render('reportings', {
         userName: this.userName,
-        //data: this.eventEngine.monitoredExtensionList
+        data: extensionList
       })
     },
     adminRemoveExtensions: async function(req, res){
