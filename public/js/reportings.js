@@ -71,11 +71,13 @@ function readReports(){
       LongestActivityTime("second-row", res.data)
       CallsDensityGraph("third-row", res.data)
       updateSummary()
+      window.setTimeout(function(){
+        if (canPoll)
+          readReports()
+      }, 5000)
+    }else{
+      alert(res.message)
     }
-    window.setTimeout(function(){
-      if (canPoll)
-        readReports()
-    }, 5000)
   });
 }
 

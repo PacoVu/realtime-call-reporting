@@ -360,7 +360,7 @@ var engine = User.prototype = {
     },
     pollActiveCalls: function(res){
       if (this.eventEngine == undefined)
-        return res.send({"status": "failed", "message": "Need admin setup"})
+        return res.send({status: "failed", message: "Need admin setup"})
       for (var ext of this.eventEngine.monitoredExtensionList){
         var currentTimestamp = new Date().getTime()
         for (var n=0; n<ext.activeCalls.length; n++){
@@ -381,7 +381,7 @@ var engine = User.prototype = {
     },
     readCallLogs: function(req, res){
       if (this.eventEngine == undefined)
-        return res.send({"status": "failed", "message": "Need admin setup"})
+        return res.send({status: "failed", message: "Need admin setup"})
       var tableName = "rt_call_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
@@ -449,7 +449,7 @@ var engine = User.prototype = {
     },
     readReports: function(req, res){
       if (this.eventEngine == undefined)
-        return res.send({"status": "failed", "message": "Need admin setup"})
+        return res.send({status: "failed", message: "Need admin setup"})
       var tableName = "rt_call_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`

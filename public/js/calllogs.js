@@ -62,6 +62,8 @@ function readCallLogs(){
         callLogList.push(call)
       }
       renderCallLogs()
+    }else{
+      alert(res.message)
     }
   });
 }
@@ -70,7 +72,6 @@ function renderCallLogs(){
   var options = { year: 'numeric', month: 'short', day: 'numeric' };
   var timeOffset = parseInt($("#timezone").val())
   timeOffset *= 3600000
-  console.log(timeOffset)
   for (var call of callLogList){
     var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"
     var connectTime = (call.connectTimestamp > 0) ? new Date(call.connectTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"

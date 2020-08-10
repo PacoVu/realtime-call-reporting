@@ -99,7 +99,7 @@ function pollResult(){
           pollResult()
       }, 1000)
     }else{
-      alert("err")
+      alert(res.message)
     }
   });
 }
