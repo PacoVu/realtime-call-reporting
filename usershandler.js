@@ -243,13 +243,13 @@ var engine = User.prototype = {
     loadCallLogsPage: function (res) {
       res.render('calllogs', {
         userName: this.userName,
-        data: this.eventEngine.monitoredExtensionList
+        //data: this.eventEngine.monitoredExtensionList
       })
     },
     loadReportingsPage: function (res) {
       res.render('reportings', {
         userName: this.userName,
-        data: this.eventEngine.monitoredExtensionList
+        //data: this.eventEngine.monitoredExtensionList
       })
     },
     adminRemoveExtensions: async function(req, res){
