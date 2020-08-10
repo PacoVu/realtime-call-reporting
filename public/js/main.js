@@ -15,7 +15,6 @@ function init(){
   }
   timeOffset = new Date().getTimezoneOffset()*60000;
   pollResult()
-  updateSummary(0, 0, 0, 0, 0)
 }
 
 function updateSummary(total, ringing, connected, hold, voicemail){
@@ -101,6 +100,7 @@ function pollResult(){
       }, 1000)
     }else{
       alert(res.message)
+      updateSummary(0, 0, 0, 0, 0)
     }
   });
 }
