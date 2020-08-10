@@ -47,7 +47,7 @@ RCPlatform.prototype = {
   },
   logout: async function(){
     console.log("logout from platform engine")
-    await this.rcsdk.logout()
+    await this.platform.logout()
   },
   getPlatform: function(){
     if (this.platform.loggedIn()){
