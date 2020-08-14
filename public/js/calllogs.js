@@ -4,8 +4,8 @@ function init(){
   $( "#fromdatepicker" ).datepicker({ dateFormat: "yy-mm-dd"});
   $( "#todatepicker" ).datepicker({dateFormat: "yy-mm-dd"});
   var pastMonth = new Date();
-  var day = pastMonth.getDate()  - 1
-  var month = pastMonth.getMonth()
+  var day = pastMonth.getDate()
+  var month = pastMonth.getMonth() - 1
   var year = pastMonth.getFullYear()
   if (month < 0){
     month = 11

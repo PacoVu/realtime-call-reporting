@@ -1,13 +1,16 @@
 const RingCentral = require('@ringcentral/sdk').SDK
 require('dotenv').load()
-const pgdb = require('./db')
 
-const Account = require('./event-engine.js')
+const sqlite3 = require('sqlite3').verbose();
+var CALLREPORTING_DATABASE = './db/callreporting.db';
+let db = new sqlite3.Database(CALLREPORTING_DATABASE);
+
+const EventHandler = require('./event-engine.js')
 
 function Engine(){
   this.extensionList = []
   this.accountId = ""
-  this.eventEngine = undefined
+  this.eventHandler = undefined
   this.platform = null
 }
 
@@ -48,12 +51,12 @@ var engine = Engine.prototype = {
     setup: function(){
       var thisClass = this
       this.extensionList = []
-      thisClass.readAccountExtensionsFromServer("", (err, result) =>{
-        thisClass.eventEngine = new Account(thisClass.accountId, thisClass.extensionList)
+      this.readAccountExtensions("", (err, result) =>{
+        thisClass.eventHandler = new EventHandler(thisClass.accountId, thisClass.extensionList)
         thisClass.subscribeForNotification()
       })
     },
-    readAccountExtensionsFromServer: async function(uri, callback){
+    readAccountExtensions: async function(uri, callback){
       var endpoint = "/restapi/v1.0/account/~/extension"
       var params = {
         status: ["Enabled"],
@@ -74,11 +77,10 @@ var engine = Engine.prototype = {
             }
             this.extensionList.push(extension)
           }
-          if (jsonObj.navigation.hasOwnProperty("nextPage") && jsonObj.navigation.nextPage.uri)
-            await this.readAccountExtensionaFromServer(jsonObj.navigation.nextPage.uri, callback)
-          else{
-            callback(null, "updateAccountExtensionsTable: DONE")
-          }
+          if (jsonObj.navigation.hasOwnProperty("nextPage"))
+            await this.readAccountExtensions(jsonObj.navigation.nextPage.uri, callback)
+          else
+            callback(null, "readAccountExtensions: DONE")
       } catch (e) {
           console.error(e);
       }
@@ -86,22 +88,24 @@ var engine = Engine.prototype = {
     subscribeForNotification: async function(){
       var query = `SELECT * FROM call_report_customers WHERE account_id='${this.accountId}' LIMIT 1`
       var thisClass = this
-      pgdb.read(query, (err, result) => {
+      db.get(query, (err, result) => {
         if (err){
           console.error(err.message);
         }else{
-          if (result.rows.length){
-            if (process.env.DELETE_EXISTING_SUBSCRIPTION_ON_START == true){
-              thisClass.deteleAccountSubscription(result.rows[0].subscription_id)
-              thisClass.subscribeAccountSubscription()
+          if (result){
+            if (process.env.DELETE_EXISTING_SUBSCRIPTION_ON_START == 1){
+              thisClass.deteleExistingSubscription(result.subscription_id)
+              thisClass.subscribeForTelephonySessionEventNotification()
+            }else{
+              console.log("Use old subscription")
             }
           }else{
-            thisClass.subscribeAccountSubscription()
+            thisClass.subscribeForTelephonySessionEventNotification()
           }
         }
       })
     },
-    deteleAccountSubscription: async function(subscriptionId){
+    deteleExistingSubscription: async function(subscriptionId){
       try {
         await this.platform.delete(`/restapi/v1.0/subscription/${subscriptionId}`)
         console.log("Deleted " + subscriptionId)
@@ -109,7 +113,7 @@ var engine = Engine.prototype = {
         console.error(e)
       }
     },
-    subscribeAccountSubscription: async function(){
+    subscribeForTelephonySessionEventNotification: async function(){
       try {
         var params = {
                 eventFilters: ["/restapi/v1.0/account/~/telephony/sessions"],
@@ -117,7 +121,7 @@ var engine = Engine.prototype = {
                     transportType: 'WebHook',
                     address: process.env.DELIVERY_MODE_ADDRESS
                 },
-                expiresIn: 31536000
+                expiresIn: 630720000
         }
         let resp = await this.platform.post('/restapi/v1.0/subscription', params)
         var jsonObj = await resp.json()
@@ -155,7 +159,7 @@ var engine = Engine.prototype = {
 
       var logs = []
       var thisClass = this
-      pgdb.read(query, (err, result) => {
+      db.all(query, (err, result) => {
         if (err){
           console.error(err.message);
           var response = {
@@ -164,14 +168,12 @@ var engine = Engine.prototype = {
           }
           return res.send(response)
         }
-        if (result.rows){
-          result.rows.sort(sortCallTime)
-          for (var item of result.rows){
-            var obj = thisClass.extensionList.find(o => o.id.toString() === item.extension_id)
-            var name = (obj) ? obj.name : "Unknown"
+        if (result){
+          result.sort(sortCallTime)
+          for (var item of result){
             var call = {
               id: item.extension_id,
-              name: name,
+              name: item.extension_name,
               partyId: item.party_id,
               sessionId: item.session_id,
               customerNumber: item.customer_number,
@@ -191,7 +193,6 @@ var engine = Engine.prototype = {
             logs.push(call)
           }
         }
-
         var response = {
             status: "ok",
             data: logs
@@ -200,7 +201,7 @@ var engine = Engine.prototype = {
       });
     },
     readReports: function(req, res){
-      var tableName = "rt_call_logs_" + this.accountId
+      var tableName = "call_report_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
       query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
       if (req.body.extensions != ""){
@@ -208,7 +209,7 @@ var engine = Engine.prototype = {
       }
       var inboundActiveCalls = 0
       var outboundActiveCalls = 0
-      for (var ext of this.eventEngine.monitoredExtensionList){
+      for (var ext of this.eventHandler.monitoredExtensionList){
         if (ext.activeCalls.length){
           if (ext.activeCalls[0].status != "NO-CALL"){
             if (ext.activeCalls[0].direction == "Inbound")
@@ -250,19 +251,19 @@ var engine = Engine.prototype = {
         averageHoldDuration: 0
       }
       var thisClass = this
-      pgdb.read(query, (err, result) => {
+      db.all(query, (err, result) => {
         if (err){
           console.error(err.message);
           var response = {
             status: "ok",
-            data: {}
+            data: reports
           }
           return res.send(response)
         }
-        if (result.rows){
+        if (result){
           //result.sort(sortCallTime)
           var timeOffset = req.body.time_offset
-          for (var item of result.rows){
+          for (var item of result){
             var localTime  = parseInt(item.calling_timestamp) + parseInt(timeOffset)
             var d = new Date(localTime)
             var hour = parseInt(d.toISOString().substring(11, 13))
@@ -337,7 +338,7 @@ var engine = Engine.prototype = {
       });
     },
     pollActiveCalls: function(res){
-      for (var ext  of this.eventEngine.monitoredExtensionList){
+      for (var ext  of this.eventHandler.monitoredExtensionList){
         var currentTimestamp = new Date().getTime()
         for (var n=0; n<ext.activeCalls.length; n++){
           var call = ext.activeCalls[n]
@@ -351,33 +352,18 @@ var engine = Engine.prototype = {
       }
       var response = {
           status: "ok",
-          data: this.eventEngine.monitoredExtensionList
+          data: this.eventHandler.monitoredExtensionList
       }
       res.send(response)
-    },
-    processNotification: function(jsonObj){
-      this.eventEngine.processNotification(jsonObj)
-    },
-    createCustomersTable: function(callback) {
-      console.log("createCustomersTable")
-      var query = 'CREATE TABLE IF NOT EXISTS call_report_customers (account_id VARCHAR(15) PRIMARY KEY, subscription_id VARCHAR(64))'
-      pgdb.create_table(query, (err, res) => {
-          if (err) {
-            console.log(err, err.message)
-            callback(err, err.message)
-          }else{
-            console.log("DONE")
-            callback(null, "Ok")
-          }
-        })
     },
     createCallLogsAnalyticsTable: function(callback) {
       console.log("createCallLogsAnalyticsTable")
       var tableName = "call_report_logs_" + this.accountId
-      var query = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' ('
+      var query = `CREATE TABLE IF NOT EXISTS ${tableName} (`
       query += 'party_id VARCHAR(48) PRIMARY KEY'
       query += ', session_id VARCHAR(12)'
       query += ', extension_id VARCHAR(15)'
+      query += ', extension_name VARCHAR(64)'
       query += ', customer_number VARCHAR(15)'
       query += ', agent_number VARCHAR(15)'
       query += ', direction VARCHAR(12)',
@@ -392,27 +378,42 @@ var engine = Engine.prototype = {
       query += ', call_action VARCHAR(15)',
       query += ', call_result VARCHAR(128)',
       query += ')'
-      pgdb.create_table(query, (err, res) => {
-          if (err) {
-            callback(err, err.message)
-          }else{
-            callback(null, "Ok")
-          }
-        })
+      db.run(query, function(err, result) {
+        if (err) {
+          callback(err, err.message)
+        }else{
+          callback(null, "Ok")
+        }
+      });
+    },
+    createCustomersTable: function(callback) {
+      var tableName = "call_report_customers"
+      var query = `CREATE TABLE IF NOT EXISTS ${tableName} (account_id VARCHAR(15) PRIMARY KEY, subscription_id VARCHAR(48))`
+      db.run(query, function(err, result) {
+        if (err) {
+          console.log(err, err.message)
+          callback(err, err.message)
+        }else{
+          console.log("DONE")
+          callback(null, "Ok")
+        }
+      });
     },
     updateCustomersTable: function(accountId, subscriptionId){
-      var query = "INSERT INTO call_report_customers (account_id, subscription_id)"
-      query += " VALUES ($1,$2)"
-      var values = [accountId, subscriptionId]
+      var tableName = "call_report_customers "
+      var query = `INSERT INTO ${tableName} (account_id, subscription_id)`
+      query += " VALUES ('" + accountId + "','" + subscriptionId + "' )"
       query += " ON CONFLICT (account_id) DO UPDATE SET subscription_id='" + subscriptionId + "'"
-      pgdb.insert(query, values, (err, result) =>  {
+      query += " WHERE account_id='" + accountId + "'"
+
+      db.run(query, function(err, result) {
         if (err){
           console.error(err.message);
           console.log("QUERY: " + query)
         }else{
           console.log("updateCustomersTable DONE");
         }
-      })
+      });
     }
 };
 

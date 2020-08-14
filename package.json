@@ -1,7 +1,7 @@
 {
-  "name": "realtime-call-statistics-demo",
+  "name": "realtime-call-reporting-demo",
   "version": "1.0.0",
-  "description": "Call Analytics with CSN",
+  "description": "Real-time Call Report using CSN event notification",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -18,7 +18,7 @@
     "dotenv": "^4.0.0",
     "ejs": "^2.5.6",
     "express": "^4.15.3",
-    "pg": "^7.12.1"
+    "sqlite3": "^5.0"
   },
   "engines": {
     "node": "10.5.0"

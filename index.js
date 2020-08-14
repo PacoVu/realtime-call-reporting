@@ -68,7 +68,7 @@ app.post('/webhookcallback', function(req, res) {
         }).on('end', function() {
             body = Buffer.concat(body).toString();
             var jsonObj = JSON.parse(body)
-            engine.processNotification(jsonObj)
+            engine.eventHandler.processNotification(jsonObj)
             res.statusCode = 200;
             res.end();
         });

@@ -1,4 +1,4 @@
-var activeAgentList = []
+var activeCallsList = []
 var timeOffset = 0
 
 function init(){
@@ -15,6 +15,7 @@ function init(){
   }
   timeOffset = new Date().getTimezoneOffset()*60000;
   pollResult()
+  console.log("start polling")
 }
 
 function updateSummary(total, ringing, connected, hold, voicemail){
@@ -41,53 +42,74 @@ function pollResult(){
         var voicemail = 0
         for (var extension of res.data){
           if (extension.activeCalls.length){
-            var agent = activeAgentList.find(a => a.id === extension.id)
-            if (agent != undefined){
+            var activeCall = activeCallsList.find(a => a.id === extension.id)
+            if (activeCall != undefined){
+              var callExist = false
               for (var call of extension.activeCalls){
-                if (call.status == "NO-CALL"){
-                  //var stats = extension.callStatistics
-                  $("#title_"+extension.id).html("Latest call stats")
-                  //$("#stats_"+extension.id).empty()
-                  var html = `<div class='col-sm-4'><b>${name}</b></div>` //makeCallsStatisticBlock(extension.name, stats)
-                  $('#stats_'+extension.id).append(html);
-                  $("#active_calls_"+extension.id).empty()
-                  $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
-                  var n = activeAgentList.findIndex(o => o.id === extension.id)
-                  //alert(n)
-                  if (n>=0){
-                    activeAgentList[n].displayCount--
-                    if (activeAgentList[n].displayCount <= 0){
-                      activeAgentList.splice(n, 1)
-                      $("#extension_"+extension.id).remove()
+                var updateCall = activeCallsList.find(a => a.partyId === call.partyId)
+                if (updateCall != undefined){
+                  if (call.status == "NO-CALL"){
+                    console.log(call.status)
+                    $("#title_"+call.partyId).html("Latest call stats")
+                    //$("#stats_"+extension.id).empty()
+                    var html = `<div class='col-sm-4'><b>${name}</b></div>`
+                    $('#stats_'+call.partyId).append(html);
+                    $("#active_calls_"+call.partyId).empty()
+                    $("#active_calls_"+call.partyId).append(makeActiveCallBlock(call))
+                    var n = activeCallsList.findIndex(o => o.partyId === call.partyId)
+                    //alert(n)
+                    if (n>=0){
+                      activeCallsList[n].displayCount--
+                      if (activeCallsList[n].displayCount <= 0){
+                        activeCallsList.splice(n, 1)
+                        $("#extension_"+call.partyId).remove()
+                      }
                     }
+                  }else if(call.status == "SETUP"){
+                    console.log("second active call?")
+                    console.log(call)
+                    if ($("#active_calls_"+call.partyId).length == 0)
+                      $("#active_calls_"+call.partyId).append(makeActiveCallBlock(call))
+                  }else{
+                    if(call.status == "RINGING")
+                      ringing++
+                    else if(call.status == "CONNECTED")
+                      connected++
+                    else if(call.status == "HOLD")
+                      hold++
+                    else if(call.status == "VOICEMAIL")
+                      voicemail++
+                    $("#title_"+call.partyId).html("Active call stats")
+                    $("#active_calls_"+call.partyId).empty()
+                    $("#active_calls_"+call.partyId).append(makeActiveCallBlock(call))
                   }
-                }else if(call.status == "SETUP"){
-                  if ($("#active_calls_"+extension.id).length == 0)
-                    $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
                 }else{
-                  if(call.status == "RINGING")
-                    ringing++
-                  else if(call.status == "CONNECTED")
-                    connected++
-                  else if(call.status == "HOLD")
-                    hold++
-                  else if(call.status == "VOICEMAIL")
-                    voicemail++
-                  $("#title_"+extension.id).html("Active call stats")
-                  $("#active_calls_"+extension.id).empty()
-                  $("#active_calls_"+extension.id).append(makeActiveCallBlock(call))
+                  if (call.status != "NO-CALL"){
+                    var agent = {
+                      id: extension.id,
+                      partyId: call.partyId,
+                      name: extension.name,
+                      displayCount: 5
+                    }
+                    console.log("add active call")
+                    makeAgentCallBlock(agent, call)
+                  }
                 }
               }
             }else{
-              if (extension.activeCalls.length && extension.activeCalls[0].status != "NO-CALL"){
+              for (var call of extension.activeCalls){
                 // new active agent => add to the dashboard
-                var agent = {
-                  id: extension.id,
-                  name: extension.name,
-                  displayCount: 5
+                //console.log(call)
+                if (call.status != "NO-CALL"){
+                  var agent = {
+                    id: extension.id,
+                    partyId: call.partyId,
+                    name: extension.name,
+                    displayCount: 5
+                  }
+                  console.log("add active call")
+                  makeAgentCallBlock(agent, call)
                 }
-                activeAgentList.push(agent)
-                makeAgentCallBlock(extension)
               }
             }
           }
@@ -109,11 +131,11 @@ function makeActiveCallBlock(call){
     var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
     html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
     if (call.direction == "Inbound"){
-      html += `<div class='col-sm-4 center'>From: ${call.customerNumber}</div>`
-      html += `<div class='col-sm-4 center'>To: ${call.agentNumber} </div>`
+      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.customerNumber)}</div>`
+      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.agentNumber)} </div>`
     }else{
-      html += `<div class='col-sm-4 center'>From: ${call.agentNumber}</div>`
-      html += `<div class='col-sm-4 center'>To: ${call.customerNumber} </div>`
+      html += `<div class='col-sm-4 center'>From: ${formatPhoneNumber(call.agentNumber)}</div>`
+      html += `<div class='col-sm-4 center'>To: ${formatPhoneNumber(call.customerNumber)} </div>`
     }
     if (call.status == "NO-CALL"){
       html += `<div class='col-sm-4 center'>Result: ${call.callResult}</div>`
@@ -139,25 +161,17 @@ function makeActiveCallBlock(call){
     return html
 }
 
-function makeCallsStatisticBlock(name){
-  var html = `<div class='col-sm-4'><b>${name}</b></div>`
-  //html += `<div class='col-sm-2'><img src='img/IN-CALL.png'> ${stats.inboundCalls}</div>`
-  //html += `<div class='col-sm-2'><img src='img/OUT-CALL.png'> ${stats.outboundCalls}</div>`
-  //html += `<div class='col-sm-2'><img src='img/Missed.png'> ${stats.missedCalls}</div>`
-  //html += `<div class='col-sm-2'><img src='img/VM.png'> ${stats.voicemails}</div>`
-  return html
-}
-function makeAgentCallBlock(ext){
-  //var stats = ext.callStatistics
-  var html = `<div id="extension_${ext.id}" class='col-sm-3 phone-block'>`
-  html += `<div id="stats_${ext.id}" class='col-xs-12 stats'>`
-  html += `<div class='col-sm-4'><b>${ext.name}</b></div>` //makeCallsStatisticBlock(ext.name, stats)
+function makeAgentCallBlock(agent, call){
+  activeCallsList.push(agent)
+  var html = `<div id="extension_${call.partyId}" class='col-sm-3 phone-block'>`
+  html += `<div id="stats_${call.partyId}" class='col-xs-12 stats'>`
+  html += `<div class='col-sm-4'><b>${agent.name}</b></div>`
   html += `</div>`
   // title line
-  html += `<div id="title_${ext.id}" class='col-xs-12 call-title'>Active call stats</div>`
+  html += `<div id="title_${agent.partyId}" class='col-xs-12 call-title'>Active call stats</div>`
   // active call block
-  html += `<div id="active_calls_${ext.id}" class='col-xs-12 active-calls'>`
-  html += makeActiveCallBlock(ext.activeCalls[0])
+  html += `<div id="active_calls_${call.partyId}" class='col-xs-12 active-calls'>`
+  html += makeActiveCallBlock(call)
   html += `</div>`
   $('#extension_list').append(html);
 }
