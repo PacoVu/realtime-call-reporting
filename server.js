@@ -106,6 +106,7 @@ var engine = Engine.prototype = {
       })
     },
     deteleExistingSubscription: async function(subscriptionId){
+      //return deleteAllRegisteredWebHookSubscriptions(this.platform)
       try {
         await this.platform.delete(`/restapi/v1.0/subscription/${subscriptionId}`)
         console.log("Deleted " + subscriptionId)
@@ -143,7 +144,7 @@ var engine = Engine.prototype = {
     readCallLogs: function(req, res){
       var tableName = "call_report_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
-      query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
+      query += ` WHERE (call_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
@@ -179,13 +180,12 @@ var engine = Engine.prototype = {
               customerNumber: item.customer_number,
               agentNumber: item.agent_number,
               direction: item.direction,
-              callTimestamp: parseInt(item.calling_timestamp),
-              ringTimestamp: parseInt(item.ringing_timestamp),
-              connectTimestamp: parseInt(item.connecting_timestamp),
-              disconnectTimestamp: parseInt(item.disconnecting_timestamp),
-              holdTimestamp: parseInt(item.holding_timestamp),
+              callTimestamp: parseInt(item.call_timestamp),
+              ringTimestamp: parseInt(item.ring_timestamp),
+              connectTimestamp: parseInt(item.connect_timestamp),
+              disconnectTimestamp: parseInt(item.disconnect_timestamp),
               callHoldDuration: parseInt(item.call_hold_duration),
-              holdingCount: item.holding_count,
+              holdingCount: item.hold_count,
               callType: item.call_type,
               callAction: item.call_action,
               callResult: item.call_result
@@ -203,7 +203,7 @@ var engine = Engine.prototype = {
     readReports: function(req, res){
       var tableName = "call_report_logs_" + this.accountId
       var query = `SELECT * FROM ${tableName}`
-      query += ` WHERE (calling_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
+      query += ` WHERE (call_timestamp BETWEEN ${req.body.from} AND ${req.body.to})`
       if (req.body.extensions != ""){
         query += ` AND (extension_id IN ${req.body.extensions})`
       }
@@ -264,14 +264,14 @@ var engine = Engine.prototype = {
           //result.sort(sortCallTime)
           var timeOffset = req.body.time_offset
           for (var item of result){
-            var localTime  = parseInt(item.calling_timestamp) + parseInt(timeOffset)
+            var localTime  = parseInt(item.call_timestamp) + parseInt(timeOffset)
             var d = new Date(localTime)
             var hour = parseInt(d.toISOString().substring(11, 13))
             if (item.direction == "Inbound"){
               reports.inbound++
               reports.inboundCallTime[hour]++
-              if (item.connecting_timestamp > item.ringing_timestamp){
-                var tempTime = (parseInt(item.connecting_timestamp) - parseInt(item.ringing_timestamp)) / 1000
+              if (item.connect_timestamp > item.ring_timestamp){
+                var tempTime = (parseInt(item.connect_timestamp) - parseInt(item.ring_timestamp)) / 1000
                 if (tempTime < 120){ // cannot be longer than 2 mins???
                   reports.averageRespondTime += tempTime
                   if (tempTime > reports.longestRespondDuration)
@@ -312,8 +312,8 @@ var engine = Engine.prototype = {
             if (item.call_duration > reports.longestCallDuration)
               reports.longestCallDuration = item.call_duration
 
-            if (item.connecting_timestamp > 0){
-              var tempTime = parseInt(item.disconnecting_timestamp) - parseInt(item.connecting_timestamp)
+            if (item.connect_timestamp > 0){
+              var tempTime = parseInt(item.disconnect_timestamp) - parseInt(item.connect_timestamp)
               tempTime = Math.round(tempTime/1000) - parseInt(item.call_hold_duration)
               if (tempTime > reports.longestTalkDuration)
                 reports.longestTalkDuration = tempTime
@@ -342,12 +342,12 @@ var engine = Engine.prototype = {
         var currentTimestamp = new Date().getTime()
         for (var n=0; n<ext.activeCalls.length; n++){
           var call = ext.activeCalls[n]
-          if (call.status == "CONNECTED" && call.localConnectingTimestamp > 0)
-            call.talkDuration = Math.round((currentTimestamp - call.localConnectingTimestamp)/1000) - call.callHoldDuration
-          else if (call.status == "RINGING" && call.localRingingTimestamp > 0)
-            call.callRespondDuration = Math.round((currentTimestamp - call.localRingingTimestamp)/1000)
-          else if (call.status == "HOLD" && call.localHoldingTimestamp > 0)
-            call.callHoldDuration = Math.round((currentTimestamp - call.localHoldingTimestamp)/1000) + call.callHoldDurationTotal
+          if (call.status == "CONNECTED" && call.localConnectTimestamp > 0){
+            call.talkDuration = Math.round((currentTimestamp - call.localConnectTimestamp)/1000) - call.callHoldDuration
+          }else if (call.status == "RINGING" && call.localRingTimestamp > 0)
+            call.callRingDuration = Math.round((currentTimestamp - call.localRingTimestamp)/1000)
+          else if (call.status == "HOLD" && call.localHoldTimestamp > 0)
+            call.callHoldDuration = Math.round((currentTimestamp - call.localHoldTimestamp)/1000) + call.callHoldDurationTotal
         }
       }
       var response = {
@@ -367,13 +367,12 @@ var engine = Engine.prototype = {
       query += ', customer_number VARCHAR(15)'
       query += ', agent_number VARCHAR(15)'
       query += ', direction VARCHAR(12)',
-      query += ', calling_timestamp BIGINT DEFAULT 0'
-      query += ', ringing_timestamp BIGINT DEFAULT 0'
-      query += ', connecting_timestamp BIGINT DEFAULT 0'
-      query += ', disconnecting_timestamp BIGINT DEFAULT 0'
-      query += ', holding_timestamp BIGINT DEFAULT 0'
+      query += ', call_timestamp BIGINT DEFAULT 0'
+      query += ', ring_timestamp BIGINT DEFAULT 0'
+      query += ', connect_timestamp BIGINT DEFAULT 0'
+      query += ', disconnect_timestamp BIGINT DEFAULT 0'
       query += ', call_hold_duration INT DEFAULT 0'
-      query += ', holding_count INT DEFAULT 0'
+      query += ', hold_count INT DEFAULT 0'
       query += ', call_type VARCHAR(32)',
       query += ', call_action VARCHAR(15)',
       query += ', call_result VARCHAR(128)',
@@ -420,7 +419,7 @@ var engine = Engine.prototype = {
 module.exports = Engine;
 
 function sortCallTime(a, b){
-  return b.calling_timestamp - a.calling_timestamp
+  return b.call_timestamp - a.call_timestamp
 }
 
 async function deleteAllRegisteredWebHookSubscriptions(p) {

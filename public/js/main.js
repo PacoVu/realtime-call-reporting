@@ -15,7 +15,6 @@ function init(){
   }
   timeOffset = new Date().getTimezoneOffset()*60000;
   pollResult()
-  console.log("start polling")
 }
 
 function updateSummary(total, ringing, connected, hold, voicemail){
@@ -117,7 +116,7 @@ function pollResult(){
 }
 
 function makeActiveCallBlock(call){
-    var startTime = new Date(call.callingTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
+    var startTime = new Date(call.callTimestamp - timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0]
     var html = `<div id='call_${call.partyId}' class='col-sm-6'>`
     var icon = (call.direction == "Inbound") ? "IN-CALL.png" : "OUT-CALL.png"
     html += `<div class='col-sm-4 center'><img src='img/${icon}'/> Call Start: ${startTime}</div>`
@@ -134,9 +133,9 @@ function makeActiveCallBlock(call){
     html += `</div>`
     html += `<div class='col-sm-4'>`
     if (call.status == "RINGING")
-      html += `<div class='col-sm-4 center'>Ring Time: ${formatDurationTime(call.callRespondDuration)}</div>`
+      html += `<div class='col-sm-4 center'>Ring Time: ${formatDurationTime(call.callRingDuration)}</div>`
     else
-      html += `<div class='col-sm-4 center'>Respond Time: ${formatDurationTime(call.callRespondDuration)}</div>`
+      html += `<div class='col-sm-4 center'>Respond Time: ${formatDurationTime(call.callRingDuration)}</div>`
     html += `<div class='col-sm-4 center'>Talk Time: ${formatDurationTime(call.talkDuration)}</div>`
     html += `<div class='col-sm-4 center'>Hold Time: ${formatDurationTime(call.callHoldDuration)}</div>`
     if (call.status == "NO-CALL"){

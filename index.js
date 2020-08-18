@@ -37,7 +37,7 @@ app.get('/calllogs', function (req, res) {
   engine.loadCallLogsPage(res)
 })
 
-app.get('/reportings', function (req, res) {
+app.get('/reporting', function (req, res) {
   engine.loadReportingsPage(res)
 })
 

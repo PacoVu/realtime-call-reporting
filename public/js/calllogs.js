@@ -57,6 +57,9 @@ function readCallLogs(){
       for (var call of res.data){
         call['callLength'] = (call.disconnectTimestamp - call.callTimestamp) / 1000
         call['connectDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) : 0
+        console.log(call.disconnectTimestamp)
+        console.log(call.connectTimestamp)
+        console.log(call.callHoldDuration)
         call['talkDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) - call.callHoldDuration : 0
         if (call.direction == "Inbound" && call.connectTimestamp > 0)
           call['ringDuration'] = (call.connectTimestamp - call.ringTimestamp) / 1000
