@@ -1,5 +1,4 @@
 PORT=5001
-PRINT_LOG=yes
 MODE=production
 
 
