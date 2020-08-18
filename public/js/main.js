@@ -26,7 +26,6 @@ function updateSummary(total, ringing, connected, hold, voicemail){
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/CONNECTED.png'/><b> #: " + connected + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/HOLD.png'/><b> #: " + hold + "</b>"
   html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/VOICEMAIL.png'/><b> #: " + voicemail + "</b>"
-  //html += "&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/PARKED.png'/><b> #: " + hold + "</b>"
   $("#summary").html(html)
 }
 
@@ -49,15 +48,12 @@ function pollResult(){
                 var updateCall = activeCallsList.find(a => a.partyId === call.partyId)
                 if (updateCall != undefined){
                   if (call.status == "NO-CALL"){
-                    console.log(call.status)
                     $("#title_"+call.partyId).html("Latest call stats")
-                    //$("#stats_"+extension.id).empty()
                     var html = `<div class='col-sm-4'><b>${name}</b></div>`
                     $('#stats_'+call.partyId).append(html);
                     $("#active_calls_"+call.partyId).empty()
                     $("#active_calls_"+call.partyId).append(makeActiveCallBlock(call))
                     var n = activeCallsList.findIndex(o => o.partyId === call.partyId)
-                    //alert(n)
                     if (n>=0){
                       activeCallsList[n].displayCount--
                       if (activeCallsList[n].displayCount <= 0){
@@ -66,8 +62,6 @@ function pollResult(){
                       }
                     }
                   }else if(call.status == "SETUP"){
-                    console.log("second active call?")
-                    console.log(call)
                     if ($("#active_calls_"+call.partyId).length == 0)
                       $("#active_calls_"+call.partyId).append(makeActiveCallBlock(call))
                   }else{
@@ -91,7 +85,6 @@ function pollResult(){
                       name: extension.name,
                       displayCount: 5
                     }
-                    console.log("add active call")
                     makeAgentCallBlock(agent, call)
                   }
                 }
@@ -99,7 +92,6 @@ function pollResult(){
             }else{
               for (var call of extension.activeCalls){
                 // new active agent => add to the dashboard
-                //console.log(call)
                 if (call.status != "NO-CALL"){
                   var agent = {
                     id: extension.id,
@@ -107,7 +99,6 @@ function pollResult(){
                     name: extension.name,
                     displayCount: 5
                   }
-                  console.log("add active call")
                   makeAgentCallBlock(agent, call)
                 }
               }
@@ -176,38 +167,27 @@ function makeAgentCallBlock(agent, call){
   $('#extension_list').append(html);
 }
 
-function logout(){
-  window.location.href = "index?n=1"
-}
-
 function formatDurationTime(dur){
   dur = Math.round(dur)
   if (dur > 86400) {
     var d = Math.floor(dur / 86400)
     dur = dur % 86400
     var h = Math.floor(dur / 3600)
-    //h = (h>9) ? h : "0" + h
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return d + "d " + h + "h " + m + "m " + s + "s"
   }else if (dur >= 3600){
     var h = Math.floor(dur / 3600)
     dur = dur % 3600
     var m = Math.floor(dur / 60)
-    //m = (m>9) ? m : ("0" + m)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return h + "h " + m + "m " + s + "s"
   }else if (dur >= 60){
     var m = Math.floor(dur / 60)
     var s = dur % 60
-    //var s = (dur>9) ? dur : ("0" + dur)
     return m + "m " + s + "s"
   }else{
-    //var s = (dur>9) ? dur : ("0" + dur)
     return dur + "s"
   }
 }
