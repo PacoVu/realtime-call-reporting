@@ -75,7 +75,6 @@ function renderCallLogs(){
   $("#call_logs_list").empty()
   var options = { year: 'numeric', month: 'short', day: 'numeric' };
   var timeOffset = parseInt($("#timezone").val())
-  //alert(timeOffset)
   timeOffset *= 3600000
   for (var call of callLogList){
     var ringTime = (call.ringTimestamp > 0) ? new Date(call.ringTimestamp + timeOffset).toISOString().match(/(\d{2}:){2}\d{2}/)[0] : "-"

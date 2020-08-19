@@ -23,7 +23,6 @@ var engine = EventHandler.prototype = {
       if (extension){
         var call = extension.activeCalls.find(o => o.partyId === party.id)
         if (call){
-          // check call party call's status
           var timestamp = new Date(jsonObj.body.eventTime).getTime()
           if(party.status.code == "Setup"){
             if (call.status == "RINGING"){ // most probably a disorder sequence

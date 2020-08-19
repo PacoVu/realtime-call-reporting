@@ -46,12 +46,10 @@ app.get('/poll_calls', function (req, res){
 })
 
 app.post('/read_calllogs', function (req, res){
-  //console.log("read_calllogs")
   engine.readCallLogs(req, res)
 })
 
 app.post('/read_reports', function (req, res){
-  //console.log("read_reports")
   engine.readReports(req, res)
 })
 

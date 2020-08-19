@@ -106,7 +106,7 @@ var engine = Engine.prototype = {
       })
     },
     deteleExistingSubscription: async function(subscriptionId){
-      //return deleteAllRegisteredWebHookSubscriptions(this.platform)
+      return deleteAllRegisteredWebHookSubscriptions(this.platform)
       try {
         await this.platform.delete(`/restapi/v1.0/subscription/${subscriptionId}`)
         console.log("Deleted " + subscriptionId)
@@ -126,7 +126,7 @@ var engine = Engine.prototype = {
         }
         let resp = await this.platform.post('/restapi/v1.0/subscription', params)
         var jsonObj = await resp.json()
-        this.updateCustomersTable(this.accountId, jsonObj.id)
+        this.updateCustomersTable(jsonObj.id)
       }catch (e) {
         console.error(e);
       }
@@ -246,9 +246,7 @@ var engine = Engine.prototype = {
         longestCallDuration: 0,
         longestTalkDuration: 0,
         longestRespondDuration: 0,
-        longestHoldDuration: 0,
-        averageRespondDuration: 0,
-        averageHoldDuration: 0
+        longestHoldDuration: 0
       }
       var thisClass = this
       db.all(query, (err, result) => {
@@ -261,7 +259,6 @@ var engine = Engine.prototype = {
           return res.send(response)
         }
         if (result){
-          //result.sort(sortCallTime)
           var timeOffset = req.body.time_offset
           for (var item of result){
             var localTime  = parseInt(item.call_timestamp) + parseInt(timeOffset)
@@ -321,15 +318,10 @@ var engine = Engine.prototype = {
 
             if (item.call_hold_duration > reports.longestHoldDuration)
               reports.longestHoldDuration = item.call_hold_duration
-
-            //reports.averageHoldTime: 0
           }
         }
-        //console.log(reports.averageRespondTime)
         reports.totalInboundTalkDuration = (reports.totalInboundCallDuration - reports.totalInboundHoldDuration)
         reports.totalOutboundTalkDuration = (reports.totalOutboundCallDuration - reports.totalOutboundHoldDuration)
-        reports.averageRespondDuration /= reports.inbound
-        //console.log(reports)
         var response = {
             status: "ok",
             data: reports
@@ -398,13 +390,12 @@ var engine = Engine.prototype = {
         }
       });
     },
-    updateCustomersTable: function(accountId, subscriptionId){
-      var tableName = "call_report_customers "
+    updateCustomersTable: function(subscriptionId){
+      var tableName = "call_report_customers"
       var query = `INSERT INTO ${tableName} (account_id, subscription_id)`
-      query += " VALUES ('" + accountId + "','" + subscriptionId + "' )"
+      query += " VALUES ('" + this.accountId + "','" + subscriptionId + "')"
       query += " ON CONFLICT (account_id) DO UPDATE SET subscription_id='" + subscriptionId + "'"
-      query += " WHERE account_id='" + accountId + "'"
-
+      query += " WHERE account_id='" + this.accountId + "'"
       db.run(query, function(err, result) {
         if (err){
           console.error(err.message);
