@@ -137,7 +137,7 @@ var engine = Engine.prototype = {
       })
     },
     loadReportingsPage: function (res) {
-      res.render('reportings', {
+      res.render('reporting', {
         data: this.extensionList
       })
     },

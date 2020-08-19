@@ -3,7 +3,7 @@
 ### Create a RingCentral app
 * Create an application at https://developer.ringcentral.com.
 * Select `Other Non-UI` option for the Platform type.
-* Add the `ReadAccounts` and `Call Control` and "Webhook  `Subscriptions` permissions for the app.
+* Add the `ReadAccounts` and `Call Control` and "Webhook  `Subscriptions`" permissions for the app.
 * Copy the Client id and Client secret and add them to the `.env` file as shown in the next section.
 
 ### Clone - Setup - Run the project
