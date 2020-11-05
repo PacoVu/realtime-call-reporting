@@ -57,7 +57,7 @@ function readCallLogs(){
       callLogList = []
       for (var call of res.data){
         call['callLength'] = (call.disconnectTimestamp - call.callTimestamp) / 1000
-        call['connectDuration'] = (call.disconnectingTimestamp > 0) ?(call.disconnectingTimestamp - call.connectingTimestamp) / 1000 : 0
+        call['connectDuration'] = (call.disconnectTimestamp > 0) ? (call.disconnectTimestamp - call.connectTimestamp) / 1000 : 0
         call['talkDuration'] = (call.connectTimestamp > 0) ? ((call.disconnectTimestamp - call.connectTimestamp) / 1000) - call.callHoldDuration : 0
         callLogList.push(call)
       }
