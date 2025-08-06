@@ -12,6 +12,7 @@ const pool = new Pool({
 
 module.exports = {
   create_table: (query, callback) => {
+    console.log(query)
     return pool.query(query, callback);
   },
   createIndex: (query, callback) => {
