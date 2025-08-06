@@ -7,11 +7,7 @@ function RCPlatform(mode) {
   var clientId = process.env.CLIENT_ID_PROD
   var clientSecret = process.env.CLIENT_SECRET_PROD
   var serverURL = RingCentral.server.production
-  if (mode == "sandbox"){
-    clientId = process.env.CLIENT_ID_SB
-    clientSecret = process.env.CLIENT_SECRET_SB
-    serverURL = RingCentral.server.sandbox
-  }
+  
   this.rcsdk = new RingCentral({
       server: serverURL,
       clientId: clientId,
